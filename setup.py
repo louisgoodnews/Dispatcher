@@ -12,12 +12,12 @@ setup(
     description="A modular event dispatching system with builder and notification pattern.",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
-    url="https://github.com/louisgoodnews/dispatcher",  # Optional: falls du ein Repo hast
-    packages=find_packages(),  # Oder ['.'] wenn du keinen Ordner hast
-    py_modules=["dispatcher"],  # Da dein Modul aktuell in einer einzelnen Datei liegt
+    url="https://github.com/louisgoodnews/dispatcher",
+    packages=find_packages(),
+    py_modules=["dispatcher"],
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",  # Optional: Wenn du eine Lizenz hast
+        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
     python_requires=">=3.9",

@@ -9,8 +9,18 @@ import uuid
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, Final, Iterable, List, Optional, Self, Tuple, Union
-from typing_extensions import Callable
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Final,
+    Iterable,
+    List,
+    Optional,
+    Self,
+    Tuple,
+    Union,
+)
 
 __all__: Final[List[str]] = [
     "DispatcherEvent",
@@ -540,7 +550,6 @@ class DispatcherEventBuilder:
         Sets the data for the event being built using keyword arguments.
 
         :param kwargs: Key-value pairs representing the data for the event.
-        :type kwargs: Any
 
         :return: The current instance of DispatcherEventBuilder for method chaining.
         :rtype: Self
@@ -552,7 +561,7 @@ class DispatcherEventBuilder:
             self._configuration["data"] = {}
 
         # Update the configuration dictionary with the provided keyword arguments.
-        self._configuration["data"].update(kwargs)
+        self._configuration["data"].update(**kwargs)
 
         # Return the current instance to allow for method chaining.
         return self
@@ -1110,13 +1119,12 @@ class DispatcherEventNotificationBuilder:
 
     def with_content(
         self,
-        **kwargs: Dict[str, Any],
+        **kwargs: Any,
     ) -> Self:
         """
         Sets the content for the notification being built using keyword arguments.
 
         :param kwargs: Key-value pairs representing the content for the notification.
-        :type kwargs: Dict[str, Any]
 
         :return: The current instance of DispatcherEventNotificationBuilder for method chaining.
         :rtype: Self
@@ -1128,7 +1136,7 @@ class DispatcherEventNotificationBuilder:
             self._configuration["content"] = {}
 
         # Update the configuration dictionary with the provided keyword arguments.
-        self._configuration["content"].update(kwargs)
+        self._configuration["content"].update(**kwargs)
 
         # Return the current instance to allow for method chaining.
         return self
@@ -1155,13 +1163,12 @@ class DispatcherEventNotificationBuilder:
 
     def with_errors(
         self,
-        *args: Iterable[Dict[str, Any]],
+        *args: Any,
     ) -> Self:
         """
         Sets the errors for the notification being built using a list of dictionaries.
 
         :param args: A variable number of dictionaries representing errors for the notification.
-        :type args: Iterable[Dict[str, Any]]
 
         :return: The current instance of DispatcherEventNotificationBuilder for method chaining.
         :rtype: Self
@@ -1173,7 +1180,7 @@ class DispatcherEventNotificationBuilder:
             self._configuration["errors"] = []
 
         # Extend the 'errors' list with the provided arguments.
-        self._configuration["errors"].extend(args)
+        self._configuration["errors"].extend(*args)
 
         # Return the current instance to allow for method chaining.
         return self
@@ -1276,7 +1283,7 @@ class DispatcherEventSubscription:
     def __init__(
         self,
         id: int,
-        **kwargs: Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]],
+        **kwargs: Any,
     ) -> None:
         """
         Initializes a new instance of the DispatcherEventSubscription class.
@@ -1286,7 +1293,6 @@ class DispatcherEventSubscription:
         :param id: The unique identifier for the subscription.
         :type id: int
         :param kwargs: Optional keyword arguments to initialize the subscription data.
-        :type kwargs: Dict[str, Optional[List[Tuple[Callable[[Any], Any], bool, str]]]]
 
         :return: None
         :rtype: None
@@ -1342,7 +1348,7 @@ class DispatcherEventSubscription:
             #     "namespace1": [(function1, persistent1, code1), (function2, persistent2, code2)],
             #     "namespace2": [(function3, persistent3, code3)],
             # }
-            self._subscriptions.update(kwargs)
+            self._subscriptions.update(**kwargs)
 
     @property
     def id(self) -> int:

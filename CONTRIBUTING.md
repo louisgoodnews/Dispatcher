@@ -20,8 +20,8 @@ Whether it's fixing a bug, improving documentation, or suggesting new features â
 To get started locally:
 
 ```bash
-git clone https://github.com/louisgoodnews/dispatcher-system.git
-cd dispatcher-system
+git clone https://github.com/louisgoodnews/Dispatcher.git@main
+cd dispatcher
 pip install -e .
 ```
 
