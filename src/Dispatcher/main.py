@@ -3,7 +3,7 @@ Author: Louis Goodnews
 Date: 2025-08-03
 """
 
-from core.dispatcher import (
+from core.core import (
     Dispatcher,
     DispatcherEventBuilder,
     DispatcherEvent,
