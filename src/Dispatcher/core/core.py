@@ -1269,15 +1269,16 @@ class DispatcherEventNotificationBuilder:
 class DispatcherEventSubscription:
     """
     Represents a subscription to events in the Dispatcher system.
-    This class manages the subscription data structure, allowing functions to be associated with namespaces
-    and providing a way to check for existing subscriptions.
+    This class manages event subscriptions, associating functions with namespaces and handling their persistence.
+    It uses a normalized data structure to efficiently store and retrieve subscription information.
 
     Attributes:
-        _subscriptions (Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]]):
-            A dictionary mapping namespaces to lists of tuples, where each tuple contains a function,
-            a persistence flag, and a unique code for the subscription.
-        _id (int):
-            The unique identifier for the subscription.
+        _id (Final[int]): A unique identifier for this subscription object.
+        _function_id_to_function (Final[Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]]):
+            A dictionary mapping a unique function ID (UUID) to a dictionary containing the
+            callable function and a boolean indicating if it's persistent.
+        _namespace_to_function_id (Final[Dict[str, List[str]]]):
+            A dictionary mapping a namespace to a list of function IDs that are subscribed to it.
     """
 
     def __init__(
@@ -1287,68 +1288,33 @@ class DispatcherEventSubscription:
     ) -> None:
         """
         Initializes a new instance of the DispatcherEventSubscription class.
-        This constructor sets up the subscription data structure to manage event subscriptions
-        within the Dispatcher system.
 
-        :param id: The unique identifier for the subscription.
-        :type id: int
-        :param kwargs: Optional keyword arguments to initialize the subscription data.
+        This constructor sets up the data structures for managing event subscriptions.
+        It can also initialize subscriptions from keyword arguments, making it compatible
+        with the factory and builder classes.
 
-        :return: None
-        :rtype: None
+        :param id: The unique identifier for this subscription instance.
+        :param kwargs: Optional keyword arguments to initialize subscriptions. The key is the namespace,
+                       and the value is a list of subscription tuples (function, persistent, function_id).
         """
 
-        # Store the unique identifier for the subscription.
-        # This ID is used to uniquely identify the subscription within the Dispatcher system.
-        # It is important for managing subscriptions, especially when there are multiple subscriptions
-        # across different namespaces or functions.
-        # The ID is typically an integer that is unique across all subscriptions.
-        # It can be used for tracking, logging, or debugging purposes.
-        # The ID is set to the provided value, which should be unique for each subscription.
-        # This uniqueness is crucial for managing subscriptions effectively, especially in systems
-        # with multiple subscribers or namespaces.
-        # The ID is expected to be a positive integer, and it is used to reference the subscription
-        # in various operations, such as subscribing, unsubscribing, or checking the status
-        # of the subscription.
+        self._function_id_to_function: Final[Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]] = {}
         self._id: Final[int] = id
+        self._namespace_to_function_id: Final[Dict[str, List[str]]] = {}
 
-        # Initialize the subscription data dictionary to store functions associated with namespaces.
-        # This dictionary maps namespaces to lists of tuples, where each tuple contains a function,
-        # a persistence flag, and a unique code for the subscription.
-        # The persistence flag indicates whether the subscription should persist across restarts.
-        # The unique code is used to identify the subscription and can be used for unsubscribing
-        # or checking the status of the subscription.
-        # The dictionary is structured as follows:
-        # {
-        #     "namespace1": [
-        #         (function1, persistent1, code1),
-        #         (function2, persistent2, code2),
-        #     ],
-        #     "namespace2": [
-        #         (function3, persistent3, code3),
-        #     ],
-        # }
-        # This structure allows for efficient management of subscriptions, enabling functions to be
-        # associated with specific namespaces and providing a way to check for existing subscriptions.
-        # The use of a dictionary allows for quick lookups of functions by namespace,
-        # and the use of tuples allows for storing multiple attributes (function, persistence, code)
-        # for each subscription in a single data structure.
-        # The dictionary is initialized as empty, and subscriptions can be added dynamically.
-        # The keys of the dictionary are namespaces, and the values are lists of tuples.
-        self._subscriptions: Final[
-            Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]]
-        ] = {}
-
-        # Check, if any(kwargs):
         if kwargs:
-            # If keyword arguments are provided, update the subscription data with them.
-            # This allows for initializing the subscription data with predefined namespaces and functions.
-            # The kwargs should be structured as follows:
-            # {
-            #     "namespace1": [(function1, persistent1, code1), (function2, persistent2, code2)],
-            #     "namespace2": [(function3, persistent3, code3)],
-            # }
-            self._subscriptions.update(**kwargs)
+            for namespace, subscriptions in kwargs.items():
+                if namespace not in self._namespace_to_function_id:
+                    self._namespace_to_function_id[namespace] = []
+
+                for subscription_tuple in subscriptions:
+                    function, persistent, function_id = subscription_tuple
+
+                    self._namespace_to_function_id[namespace].append(function_id)
+                    self._function_id_to_function[function_id] = {
+                        "function": function,
+                        "persistent": persistent,
+                    }
 
     @property
     def id(self) -> int:
@@ -1368,82 +1334,58 @@ class DispatcherEventSubscription:
     def __getitem__(
         self,
         key: str,
-    ) -> Optional[List[Tuple[Callable[[Any], Any], bool, str]]]:
+    ) -> List[Tuple[Callable[[Any], Any], bool, str]]:
         """
-        Retrieves the list of subscriptions for the given namespace.
-        This method allows access to the subscriptions associated with a specific namespace.
+        Retrieves the list of subscriptions for a given namespace using dictionary-style access.
 
-        :param key: The namespace to look up in the subscription data.
-        :type key: str
-
-        :return: A list of tuples containing the function, persistence flag, and code for the namespace,
-                 or None if the namespace does not exist.
-        :rtype: Optional[List[Tuple[Callable[[Any], Any], bool, str]]]
+        :param key: The namespace to look up.
+        :return: A list of tuples for each subscription, or an empty list if the namespace is not found.
+                 Each tuple contains (function, is_persistent, function_id).
         """
-
-        # Return the list of subscriptions for the given namespace.
-        # If the namespace does not exist in the subscription data, return None.
-        # This allows for checking if there are any subscriptions for a specific namespace.
-        # The return type is Optional[List[Tuple[Callable[[Any], Any], bool, str]]],
-        # indicating that it can return a list of tuples or None if the namespace is not found.
-        # Each tuple in the list contains:
-        # - A function that is subscribed to the namespace.
-        # - A boolean indicating whether the subscription is persistent.
-        # - A unique code representing the subscription.
-        # The function can be called with an event to process it, the persistence flag indicates
-        # whether the subscription should persist across restarts, and the code is used to identify
-        # the subscription uniquely.
-        # The method uses the get method of the dictionary to retrieve the list of subscriptions
-        # for the specified namespace. If the namespace does not exist, it returns None.
-        # This allows for safe access to the subscription data without raising a KeyError.
-        return self._subscriptions.get(
-            key,
-            None,
-        )
+        return self.get_subscribers_for_namespace(key)
 
     def __repr__(self) -> str:
         """
-        Returns a string representation of the DispatcherEventSubscription.
-        This method provides a human-readable representation of the subscription,
-        including its ID and the data structure containing the subscriptions.
+        Returns a concise string representation of the DispatcherEventSubscription instance.
 
-        :return: A string representation of the subscription.
-        :rtype: str
+        :return: A string representation of the object.
         """
-
-        # Format the string representation of the DispatcherEventSubscription
-        # Include the class name, ID, and the subscription data
-        # This is useful for debugging and logging purposes
-        return f"{self.__class__.__name__}(id={self.id}, subscriptions={self._subscriptions})"
+        return (
+            f"{self.__class__.__name__}(id={self.id}, "
+            f"namespaces={list(self._namespace_to_function_id.keys())}, "
+            f"subscriptions={len(self._function_id_to_function)})"
+        )
 
     def __str__(self) -> str:
         """
-        Returns a string representation of the DispatcherEventSubscription.
-        This method provides a human-readable representation of the subscription,
-        including its ID and the data structure containing the subscriptions.
+        Returns a user-friendly string representation of the DispatcherEventSubscription instance.
 
-        :return: A string representation of the subscription.
-        :rtype: str
+        :return: A string representation of the object.
         """
-
-        # Call the __repr__ method to get the string representation
-        # This ensures that the string representation is consistent with the __repr__ method
         return self.__repr__()
+
+    def contains(self, function_id: Optional[str] = None, namespace: Optional[str] = None) -> bool:
+        """
+        Checks if a subscription exists by function ID or if a namespace has any subscriptions.
+
+        :param function_id: The unique ID of the function to check for.
+        :param namespace: The namespace to check for.
+        :return: True if the subscription or namespace exists, False otherwise.
+        :raises AttributeError: If neither function_id nor namespace is provided.
+        """
+        if function_id:
+            return function_id in self._function_id_to_function
+        elif namespace:
+            return namespace in self._namespace_to_function_id
+        else:
+            raise AttributeError("At least one of 'function_id' or 'namespace' must be provided.")
 
     def clear(self) -> None:
         """
-        Clears all subscriptions in the DispatcherEventSubscription.
-        This method removes all entries from the subscription data dictionary,
-        effectively resetting the subscription state.
-
-        :return: None
-        :rtype: None
+        Clears all subscriptions, removing all namespaces and functions.
         """
-
-        # Clear the subscription data dictionary
-        # This removes all namespaces and their associated subscriptions,
-        # resetting the subscription state to an empty state.
-        self._subscriptions.clear()
+        self._function_id_to_function.clear()
+        self._namespace_to_function_id.clear()
 
     def dispatch(
         self,
@@ -1454,84 +1396,47 @@ class DispatcherEventSubscription:
         **kwargs: Dict[str, Any],
     ) -> DispatcherEventNotificationBuilder:
         """
-        Dispatches an event to the specified namespace and updates the builder with the results.
-        This method iterates through the subscriptions for the given namespace,
-        calls the associated functions with the event, and updates the builder with the results.
+        Dispatches an event to all functions subscribed to the given namespace.
 
-        :param event: The DispatcherEvent to dispatch.
-        :type event: DispatcherEvent
-        :param builder: The DispatcherEventNotificationBuilder to update with the results.
-        :type builder: DispatcherEventNotificationBuilder
+        It executes each subscribed function and updates the notification builder with the results.
+        Non-persistent subscriptions are removed after execution.
+
+        :param event: The event to dispatch.
+        :param builder: The notification builder to update with results.
         :param namespace: The namespace to dispatch the event to.
-        :type namespace: str
-        :param args: Additional positional arguments to pass to the subscribed functions.
-        :type args: Iterable[Any]
-        :param kwargs: Additional keyword arguments to pass to the subscribed functions.
-        :type kwargs: Dict[str, Any]
-
-        :return: The updated DispatcherEventNotificationBuilder with the results of the dispatch.
-        :rtype: DispatcherEventNotificationBuilder
+        :param args: Positional arguments to pass to the subscribed functions.
+        :param kwargs: Keyword arguments to pass to the subscribed functions.
+        :return: The updated notification builder.
         """
-
-        # Check if the namespace exists in the data dictionary
-        if namespace not in self._subscriptions:
-            # If the namespace does not exist, return the builder without dispatching.
+        if namespace not in self._namespace_to_function_id:
             return builder
 
-        # Initialize a list to keep track of non-persistent subscriptions.
-        # This list will hold the unique codes of subscriptions that are not persistent.
-        # Non-persistent subscriptions are those that do not need to be retained across restarts.
-        # They are typically used for temporary or one-time event handling.
-        # The list is initialized as empty, and it will be populated with codes of non-persistent subscriptions
-        # during the iteration over the subscriptions for the given namespace.
-        non_persistent_subscriptions: List[str] = []
+        # Copy the list of function IDs to avoid modification issues during iteration.
+        function_ids_to_dispatch = self._namespace_to_function_id[namespace][:]
+        non_persistent_ids = []
 
-        # Retrieve the list of subscriptions for the given namespace.
-        # This list contains tuples of functions, persistence flags, and unique codes.
-        # Each tuple represents a subscription to the namespace.
-        # The persistence flag indicates whether the subscription should persist across restarts.
-        # The unique code is used to identify the subscription uniquely.
-        # The subscriptions are deep-copied to avoid modifying the original data structure
-        # during the iteration, ensuring that the original subscription data remains unchanged.
-        # This is important for maintaining the integrity of the subscription data,
-        # especially when multiple threads or processes might be accessing or modifying the data concurrently.
-        subscriptions: List[Tuple[Callable[[Any], Any], bool, str]] = copy.deepcopy(
-            self._subscriptions[namespace]
-        )
+        for function_id in function_ids_to_dispatch:
+            subscription_details = self._function_id_to_function.get(function_id)
 
-        for subscription in subscriptions:
-            # Unpack the subscription tuple into function, persistence flag, and code
-            (
-                function,
-                persistent,
-                code,
-            ) = subscription
+            if not subscription_details:
+                # This can happen if a function was unsubscribed concurrently.
+                continue
 
-            # Check if the subscription is persistent
-            if not persistent:
-                # If not persistent, add the code to the list of non-persistent subscriptions
-                non_persistent_subscriptions.append(code)
+            function = subscription_details["function"]
+            is_persistent = subscription_details["persistent"]
+
+            if not is_persistent:
+                non_persistent_ids.append(function_id)
 
             try:
-                # Call the function with the event and any additional arguments or keyword arguments
-                builder.with_content(
-                    **{
-                        function.__name__: function(
-                            event,
-                            *args,
-                            **kwargs,
-                        )
-                    }
-                )
-
-                # Update the builder's status to SUCCESS after successful execution
+                result = function(event, *args, **kwargs)
+                builder.with_content(**{function.__name__: result})
                 builder.with_status(value=DispatcherEventNotificationStatus.SUCCESS)
             except Exception as e:
-                # If an exception occurs, log the error and add it to the builder's errors
                 builder.with_errors(
                     [
                         {
-                            "code": code,
+                            "function_id": function_id,
                             "error": str(e),
                             "function": function.__name__,
                             "namespace": namespace,
@@ -1539,60 +1444,33 @@ class DispatcherEventSubscription:
                         }
                     ]
                 )
-
-                # Update the builder's status to FAILURE due to the error
                 builder.with_status(value=DispatcherEventNotificationStatus.FAILURE)
 
-        # If there are any non-persistent subscriptions, remove them from the data dictionary
-        if non_persistent_subscriptions:
-            # Iterate through the list of non-persistent subscription codes
-            for code in non_persistent_subscriptions:
-                # Remove the subscription with the given code from the data dictionary
-                self.unsubscribe_by_code(code)
+        # Clean up non-persistent subscriptions.
+        for function_id in non_persistent_ids:
+            try:
+                self.unsubscribe_by_function_id(function_id)
+            except KeyError:
+                # Might have already been removed by another operation, which is fine.
+                pass
 
-        # Update the builder with the event's last notified time
-        # This is used to track when the event was last processed or notified.
-        # The last_notified attribute of the event is updated to the current time.
-        # This is useful for tracking the timing of event processing and can be used for logging or
-        # debugging purposes.
-        # The datetime.now() function is used to get the current time, which is then assigned
-        # to the last_notified attribute of the event.
-        # This ensures that the event's last notified time is updated whenever the event is dispatched.
-        # This is important for maintaining the state of the event and can be useful for
-        # monitoring or auditing purposes.
         event.last_notified = datetime.now()
 
-        # Return the builder with the updated content and errors
         return builder
 
     def get_status(
         self,
-        code: str,
+        function_id: str,
     ) -> Optional[Tuple[Callable[[Any], Any], bool, str]]:
         """
-        Retrieves the status of a subscription by its unique code.
-        This method allows checking if a subscription exists and returns its details.
+        Retrieves the status of a subscription by its unique ID.
 
-        :param code: The unique code representing the subscription.
-        :type code: str
-
-        :return: A tuple containing the function, persistence flag, and code if found, otherwise None.
-        :rtype: Optional[Tuple[Callable[[Any], Any], bool, str]]
+        :param function_id: The unique ID of the subscription to look up.
+        :return: A tuple containing (function, is_persistent, function_id) if found, otherwise None.
         """
-
-        # Iterate through the namespaces in the data dictionary
-        for subscriptions in self._subscriptions.values():
-            # Iterate through the list of subscriptions for each namespace
-            for subscription in subscriptions:
-                # Check if the subscription's code matches the provided code
-                if subscription[2] != code:
-                    # If the code does not match, continue to the next subscription
-                    continue
-
-                # If a matching subscription is found, return it
-                return subscription
-
-        # If no matching subscription is found, return None
+        if function_id in self._function_id_to_function:
+            details = self._function_id_to_function[function_id]
+            return (details["function"], details["persistent"], function_id)
         return None
 
     def get_subscribers_for_namespace(
@@ -1601,22 +1479,25 @@ class DispatcherEventSubscription:
     ) -> List[Tuple[Callable[[Any], Any], bool, str]]:
         """
         Retrieves the list of subscribers for a given namespace.
-        This method returns all subscriptions associated with the specified namespace.
+
+        This method returns all subscriptions associated with the specified namespace in a format
+        that is compatible with other parts of the system.
 
         :param namespace: The namespace to retrieve subscribers for.
-        :type namespace: str
-
-        :return: A list of tuples containing the function, persistence flag, and code for the namespace,
-                 or None if the namespace does not exist.
-        :rtype: List[Tuple[Callable[[Any], Any], bool, str]]
+        :return: A list of tuples, where each tuple is (function, is_persistent, function_id).
+                 Returns an empty list if the namespace has no subscribers.
         """
+        if namespace not in self._namespace_to_function_id:
+            return []
 
-        # Return the list of subscriptions for the given namespace.
-        # If the namespace does not exist in the subscription data, return None.
-        return self._subscriptions.get(
-            namespace,
-            [],
-        )
+        subscribers = []
+        for function_id in self._namespace_to_function_id[namespace]:
+            if function_id in self._function_id_to_function:
+                details = self._function_id_to_function[function_id]
+                subscribers.append(
+                    (details["function"], details["persistent"], function_id)
+                )
+        return subscribers
 
     def subscribe(
         self,
@@ -1625,223 +1506,151 @@ class DispatcherEventSubscription:
         persistent: bool = False,
     ) -> str:
         """
-        Subscribes a function to a namespace with an optional persistence flag.
-        This method allows a function to be associated with a specific namespace,
-        enabling it to receive events dispatched to that namespace.
+        Subscribes a function to a namespace.
+
+        This method associates a function with a namespace, allowing it to receive events
+        dispatched to that namespace. It generates a unique ID for the subscription.
 
         :param namespace: The namespace to subscribe the function to.
         :type namespace: str
         :param function: The function to be subscribed.
         :type function: Callable[[Any], Any]
-        :param persistent: Whether the subscription should persist across restarts.
+        :param persistent: If True, the subscription will not be automatically removed after being triggered once.
+                           Defaults to False.
         :type persistent: bool
-
-        :return: A unique code representing the subscription.
+        :return: A unique function ID for the subscription.
         :rtype: str
-
-        :raises ValueError: If the function is already subscribed to the namespace.
+        :raises ValueError: If the function is already subscribed to the given namespace.
         """
+        # Ensure the namespace exists in the tracking dictionary.
+        if namespace not in self._namespace_to_function_id:
+            self._namespace_to_function_id[namespace] = []
+        else:
+            # Check if the same function is already subscribed to this namespace.
+            for function_id in self._namespace_to_function_id[namespace]:
+                if self._function_id_to_function[function_id]["function"] == function:
+                    raise ValueError(
+                        f"Function '{function.__name__}' is already subscribed to namespace '{namespace}'."
+                    )
 
-        # Check if the namespace exists in the data dictionary
-        if namespace not in self._subscriptions:
-            # If not, initialize it with an empty list
-            self._subscriptions[namespace] = []
+        # Generate a unique ID for this specific subscription.
+        function_id = str(uuid.uuid4())
 
-        # Check if the function is already subscribed to the namespace
-        for item in self._subscriptions[namespace]:
-            if item[0] == function:
-                # If it is, return a message indicating that the function is already subscribed
-                raise ValueError(
-                    f"Function {function.__name__} is already subscribed to namespace '{namespace}'."
-                )
+        # Link the function ID to the namespace.
+        self._namespace_to_function_id[namespace].append(function_id)
 
-        # Generate a unique code for the subscription
-        # This code is used to identify the subscription and can be used for unsubscribing
-        # or checking the status of the subscription.
-        # The code is generated using uuid4 to ensure uniqueness across subscriptions.
-        # This uniqueness is crucial for managing subscriptions effectively, especially in systems
-        # with multiple subscribers or namespaces.
-        code: str = str(uuid.uuid4())
+        # Store the function and its persistence setting using the unique ID.
+        self._function_id_to_function[function_id] = {
+            "function": function,
+            "persistent": persistent,
+        }
 
-        # Append the function along with its persistence status and namespace to the list
-        self._subscriptions[namespace].append(
-            (
-                function,
-                persistent,
-                code,
-            )
-        )
-
-        # Return the code to indicate successful subscription
-        # This code can be used to reference the subscription later, such as for unsubscribing
-        # or checking the status of the subscription
-        # The code is generated using uuid4 to ensure uniqueness across subscriptions
-        # This uniqueness is crucial for managing subscriptions effectively, especially in systems
-        # with multiple subscribers or namespaces.
-        return code
+        # Return the unique ID so the subscription can be managed later.
+        return function_id
 
     def unsubscribe(
         self,
-        code: Optional[str] = None,
+        function_id: Optional[str] = None,
         namespace: Optional[str] = None,
         function: Optional[Callable[[Any], Any]] = None,
-    ) -> Optional[bool]:
+    ) -> bool:
         """
-        Unsubscribes a function from a namespace or by its unique code.
-        This method allows for removing a subscription based on either the code, namespace, or function.
+        Unsubscribes a function based on its ID, namespace, or the function object.
 
-        :param code: The unique code representing the subscription to be removed.
-        :type code: Optional[str]
-        :param namespace: The namespace from which to unsubscribe the function.
-        :type namespace: Optional[str]
-        :param function: The function to be unsubscribed.
-        :type function: Optional[Callable[[Any], Any]]
+        This method provides multiple ways to remove a subscription. Only one parameter should be provided.
 
-        :return: True if the subscription was successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
-
-        :raises ValueError: If no subscription matches the provided criteria.
+        :param function_id: The unique ID of the subscription to remove.
+        :param namespace: The namespace from which to remove all subscriptions.
+        :param function: The function object to unsubscribe from all namespaces.
+        :return: True if the unsubscription was successful.
+        :raises ValueError: If no identifying parameter is provided, or if the subscription is not found.
         """
-
-        # Check if a code is provided
-        if code is not None:
-            return self.unsubscribe_by_code(code)
-        # If only a namespace is provided, unsubscribe all functions in that namespace
+        if function_id is not None:
+            return self.unsubscribe_by_function_id(function_id)
         elif namespace is not None:
             return self.unsubscribe_by_namespace(namespace)
-        # If only a function is provided, unsubscribe it from all namespaces
         elif function is not None:
             return self.unsubscribe_by_function(function)
         else:
-            # If no parameters are provided, raise an error
             raise ValueError(
-                "At least one parameter (code, namespace, or function) must be provided."
+                "At least one parameter (function_id, namespace, or function) must be provided."
             )
 
     def unsubscribe_all(self) -> None:
         """
-        Unsubscribes all functions from all namespaces.
-        This method clears all subscriptions, effectively resetting the subscription state.
-
-        :return: None
-        :rtype: None
+        Removes all subscriptions from all namespaces.
         """
+        self._function_id_to_function.clear()
+        self._namespace_to_function_id.clear()
 
-        # Clear all subscriptions by calling the clear method on the data dictionary
-        # This removes all namespaces and their associated subscriptions,
-        # resetting the subscription state to an empty state.
-        self._subscriptions.clear()
-
-    def unsubscribe_by_code(
-        self,
-        code: str,
-    ) -> Optional[bool]:
+    def unsubscribe_by_function_id(self, function_id: str) -> bool:
         """
-        Unsubscribes a function from a namespace using its unique code.
-        This method removes the subscription associated with the given code.
+        Unsubscribes a function using its unique subscription ID.
 
-        :param code: The unique code representing the subscription to be removed.
-        :type code: str
-
-        :return: True if the subscription was successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
-
-        :raises ValueError: If no subscription with the given code exists.
+        :param function_id: The unique ID of the subscription to remove.
+        :return: True if the unsubscription was successful.
+        :raises KeyError: If the function ID is not found.
         """
+        if function_id not in self._function_id_to_function:
+            raise KeyError(f"Function ID '{function_id}' not found.")
 
-        # Iterate through the namespaces in the data dictionary
-        # The data dictionary contains namespaces as keys and lists of subscriptions as values
-        # Each subscription is a tuple containing a function, a persistence flag, and a unique code
-        for subscriptions in self._subscriptions.values():
-            # Iterate through the list of subscriptions for each namespace
-            for subscription in subscriptions:
-                # Check if the subscription's code matches the provided code
-                if subscription[2] != code:
-                    # If the code does not match, continue to the next subscription
-                    continue
+        # Remove the function from the central registry.
+        self._function_id_to_function.pop(function_id, None)
 
-                # If a matching subscription is found, remove it from the list
-                subscriptions.remove(subscription)
+        # Remove the function ID from any namespace that contains it.
+        found = False
+        for namespace, id_list in self._namespace_to_function_id.items():
+            if function_id in id_list:
+                id_list.remove(function_id)
+                if not id_list:
+                    # Clean up empty namespace.
+                    del self._namespace_to_function_id[namespace]
+                found = True
+                break  # A function ID should be unique across all namespaces.
 
-                # Return to indicate successful unsubscription
-                # This indicates that the function has been successfully unsubscribed from the namespace
-                # The removal of the subscription ensures that the function will no longer receive events
-                # dispatched to that namespace, effectively unsubscribing it from the event system.
-                # This is useful for cleaning up subscriptions that are no longer needed
-                # or for managing resources in the system.
-                return True
+        return found
 
-        # If no matching subscription was found, raise a ValueError
-        raise ValueError(f"No subscription found with code '{code}'.")
-
-    def unsubscribe_by_function(
-        self,
-        function: Callable[[Any], Any],
-    ) -> Optional[bool]:
+    def unsubscribe_by_function(self, function: Callable[[Any], Any]) -> bool:
         """
-        Unsubscribes a function from all namespaces.
-        This method removes all subscriptions associated with the given function.
+        Unsubscribes a specific function from all namespaces it is subscribed to.
 
-        :param function: The function to be unsubscribed.
-        :type function: Callable[[Any], Any]
-
-        :return: True if the subscription was successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
-
+        :param function: The function object to unsubscribe.
+        :return: True if at least one subscription was removed.
         :raises ValueError: If the function is not subscribed to any namespace.
         """
+        # Find all function IDs associated with this function object.
+        function_ids_to_remove = [
+            fid for fid, data in self._function_id_to_function.items()
+            if data["function"] == function
+        ]
 
-        # Iterate through the namespaces in the data dictionary
-        # The data dictionary contains namespaces as keys and lists of subscriptions as values
-        # Each subscription is a tuple containing a function, a persistence flag, and a unique code
-        for subscriptions in self._subscriptions.values():
-            # Iterate through the list of subscriptions for each namespace
-            for subscription in subscriptions:
-                # Check if the subscription's code matches the provided code
-                if subscription[0] != function:
-                    # If the code does not match, continue to the next subscription
-                    continue
+        if not function_ids_to_remove:
+            raise ValueError(f"Function '{function.__name__}' not found in any subscription.")
 
-                # If a matching subscription is found, remove it from the list
-                subscriptions.remove(subscription)
+        # Unsubscribe each found instance.
+        for function_id in function_ids_to_remove:
+            self.unsubscribe_by_function_id(function_id)
 
-                # Return to indicate successful unsubscription
-                # This indicates that the function has been successfully unsubscribed from the namespace
-                # The removal of the subscription ensures that the function will no longer receive events
-                # dispatched to that namespace, effectively unsubscribing it from the event system.
-                # This is useful for cleaning up subscriptions that are no longer needed
-                # or for managing resources in the system.
-                return True
+        return True
 
-        # If no matching subscription was found, raise a ValueError
-        raise ValueError(f"No subscription found for function '{function.__name__}'.")
-
-    def unsubscribe_by_namespace(
-        self,
-        namespace: str,
-    ) -> Optional[bool]:
+    def unsubscribe_by_namespace(self, namespace: str) -> bool:
         """
         Unsubscribes all functions from a specific namespace.
-        This method removes all subscriptions associated with the given namespace.
 
-        :param namespace: The namespace from which to unsubscribe all functions.
-        :type namespace: str
-
-        :return: True if the subscriptions were successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
-
-        :raises ValueError: If the namespace does not exist or has no subscriptions.
+        :param namespace: The namespace to clear of all subscriptions.
+        :return: True if the namespace was found and cleared.
+        :raises KeyError: If the namespace does not exist.
         """
+        if namespace not in self._namespace_to_function_id:
+            raise KeyError(f"Namespace '{namespace}' not found.")
 
-        # Check if the namespace exists in the data dictionary
-        if namespace not in self._subscriptions:
-            # If it does not exist, raise a ValueError
-            raise ValueError(f"Namespace '{namespace}' does not exist.")
+        # Get all function IDs for the namespace.
+        function_ids_to_remove = self._namespace_to_function_id.pop(namespace)
 
-        # Remove all subscriptions for the specified namespace
-        del self._subscriptions[namespace]
+        # Remove each function from the central registry.
+        for function_id in function_ids_to_remove:
+            self._function_id_to_function.pop(function_id, None)
 
-        # Return to indicate successful unsubscription
         return True
 
 
@@ -2323,80 +2132,55 @@ class Dispatcher:
 
     def bulk_unsubscribe(
         self,
-        codes: Iterable[str] = (),
+        function_ids: Iterable[str] = (),
         events: Iterable[DispatcherEvent] = (),
         functions: Iterable[Callable[[Any], Any]] = (),
         namespaces: Iterable[str] = (),
-    ) -> List[Optional[bool]]:
+    ) -> List[bool]:
         """
         Unsubscribes multiple functions from events based on the provided parameters.
-        This method allows for removing subscriptions based on either the codes, events, functions, or namespaces.
 
-        :param codes: An iterable of unique codes representing the subscriptions to be removed.
-        :type codes: Iterable[str]
+        :param function_ids: An iterable of unique function IDs for the subscriptions to be removed.
         :param events: An iterable of DispatcherEvent instances to unsubscribe from.
-        :type events: Iterable[DispatcherEvent]
         :param functions: An iterable of functions to be unsubscribed.
-        :type functions: Iterable[Callable[[Any], Any]]
         :param namespaces: An iterable of namespaces from which to unsubscribe all functions.
-        :type namespaces: Iterable[str]
-
-        :return: A list of booleans indicating whether each unsubscription was successful.
-        :rtype: List[Optional[bool]]
+        :return: A list of booleans indicating the success of each unsubscription.
         """
+        results: List[bool] = []
 
-        # Initialize an empty list to hold the results of each unsubscription attempt
-        results: List[Optional[bool]] = []
+        for function_id in function_ids:
+            results.append(self.unsubscribe_by_function_id(function_id=function_id))
 
-        # Iterate over each code in the provided iterable of codes
-        for code in codes:
-            # Attempt to unsubscribe by code and append the result to the list
-            results.append(self.unsubscribe_by_code(code=code))
-
-        # Iterate over each event in the provided iterable of events
         for event in events:
-            # Attempt to unsubscribe by event and append the result to the list
             results.append(self.unsubscribe_by_event(event=event))
 
-        # Iterate over each function in the provided iterable of functions
         for function in functions:
-            # Attempt to unsubscribe by function and append the result to the list
             results.append(self.unsubscribe_by_function(function=function))
 
-        # Iterate over each namespace in the provided iterable of namespaces
         for namespace in namespaces:
-            # Attempt to unsubscribe by namespace and append the result to the list
             results.append(self.unsubscribe_by_namespace(namespace=namespace))
 
-        # Return the list of results indicating whether each unsubscription was successful
         return results
 
     def unsubscribe(
         self,
-        code: Optional[str] = None,
+        function_id: Optional[str] = None,
         event: Optional[DispatcherEvent] = None,
         function: Optional[Callable[[Any], Any]] = None,
         namespace: Optional[str] = None,
-    ) -> Optional[bool]:
+    ) -> bool:
         """
         Unsubscribes a function from an event based on the provided parameters.
-        This method allows for removing a subscription based on either the code, event, namespace, or function.
 
-        :param code: The unique code representing the subscription to be removed.
-        :type code: Optional[str]
-        :param namespace: The namespace from which to unsubscribe the function.
-        :type namespace: Optional[str]
-        :param function: The function to be unsubscribed.
-        :type function: Optional[Callable[[Any], Any]]
-
-        :return: True if the subscription was successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
-
-        :raises ValueError: If no subscription matches the provided criteria.
+        :param function_id: The unique ID of the subscription to remove.
+        :param event: The event to unsubscribe from.
+        :param function: The function to unsubscribe.
+        :param namespace: The namespace to unsubscribe from.
+        :return: True if the unsubscription was successful.
+        :raises ValueError: If no identifying parameter is provided.
         """
-
-        if code is not None:
-            return self.unsubscribe_by_code(code=code)
+        if function_id is not None:
+            return self.unsubscribe_by_function_id(function_id=function_id)
         elif event is not None:
             return self.unsubscribe_by_event(event=event)
         elif function is not None:
@@ -2404,49 +2188,33 @@ class Dispatcher:
         elif namespace is not None:
             return self.unsubscribe_by_namespace(namespace=namespace)
         else:
-            # If no parameters are provided, raise an error
             raise ValueError(
-                "At least one parameter (code, event, function, or namespace) must be provided."
+                "At least one parameter (function_id, event, function, or namespace) must be provided."
             )
 
     def unsubscribe_all(self) -> None:
         """
-        Unsubscribes all functions from all events.
-        This method clears all subscriptions, effectively resetting the dispatcher to an empty state.
-
-        :return: None
-        :rtype: None
+        Unsubscribes all functions from all events, clearing all subscriptions.
         """
-
-        # Clear all subscriptions by resetting the _subscriptions dictionary to an empty state
-        # This removes all event subscriptions and their associated functions,
-        # allowing for a fresh start without any active subscriptions.
         self._subscriptions.clear()
 
-    def unsubscribe_by_code(
-        self,
-        code: str,
-    ) -> Optional[bool]:
+    def unsubscribe_by_function_id(self, function_id: str) -> bool:
         """
-        Unsubscribes a function from an event using its unique code.
-        This method removes the subscription associated with the given code.
+        Unsubscribes a function from an event using its unique function ID.
 
-        :param code: The unique code representing the subscription to be removed.
-        :type code: str
-
-        :return: True if the subscription was successfully removed, raises a ValueError otherwise.
-        :rtype: Optional[bool]
+        :param function_id: The unique ID of the subscription to remove.
+        :return: True if the subscription was successfully removed.
+        :raises KeyError: If no subscription with the given function ID is found.
         """
-
-        # Iterate through the subscriptions to find and remove the subscription by code
         for subscription in self._subscriptions.values():
             try:
-                return subscription.unsubscribe_by_code(code=code)
-            except ValueError:
+                # This will succeed if the function_id is in this subscription object.
+                if subscription.unsubscribe_by_function_id(function_id=function_id):
+                    return True
+            except (KeyError, ValueError):
                 continue
 
-        # If no matching subscription was found, raise a ValueError
-        raise ValueError(f"No subscription found with code '{code}'.")
+        raise KeyError(f"No subscription found with function ID '{function_id}'.")
 
     def unsubscribe_by_event(
         self,
