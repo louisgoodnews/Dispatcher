@@ -288,9 +288,7 @@ class DispatcherEvent:
             return False
 
         # Compare the code, ID, and name of both events
-        return (
-            self.code == value.code and self.id == value.id and self.name == value.name
-        )
+        return self.code == value.code and self.id == value.id and self.name == value.name
 
     def __getitem__(
         self,
@@ -908,6 +906,28 @@ class DispatcherEventNotification:
         # This ensures that the string representation is consistent with the __repr__ method
         return self.__repr__()
 
+    def get_function_names(self) -> List[str]:
+        """
+        Returns the function names of the notification's content dictionary.
+
+        :return: The function names of the notification's content dictionary.
+        :rtype: List[str]
+        """
+
+        # Return the contents of the notification
+        return list(self.content.keys())
+
+    def get_function_results(self) -> List[Any]:
+        """
+        Returns the function results of the notification's content dictionary.
+
+        :return: The function results of the notification's content dictionary.
+        :rtype: List[Any]
+        """
+
+        # Return the contents of the notification
+        return list(self.content.values())
+
     def get_one_and_only_result(self) -> Optional[Any]:
         """
         Returns the one and only result from the notification's content dictionary.
@@ -1093,9 +1113,7 @@ class DispatcherEventNotificationBuilder:
             )
         ):
             # If any required attribute is missing, raise a ValueError.
-            raise ValueError(
-                "Missing required attributes to build DispatcherEventNotification."
-            )
+            raise ValueError("Missing required attributes to build DispatcherEventNotification.")
 
         # Create and return a new DispatcherEventNotification instance with the current configuration.
         return DispatcherEventNotificationFactory.create_dispatcher_notification(
@@ -1298,7 +1316,9 @@ class DispatcherEventSubscription:
                        and the value is a list of subscription tuples (function, persistent, function_id).
         """
 
-        self._function_id_to_function: Final[Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]] = {}
+        self._function_id_to_function: Final[
+            Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]
+        ] = {}
         self._id: Final[int] = id
         self._namespace_to_function_id: Final[Dict[str, List[str]]] = {}
 
@@ -1494,9 +1514,7 @@ class DispatcherEventSubscription:
         for function_id in self._namespace_to_function_id[namespace]:
             if function_id in self._function_id_to_function:
                 details = self._function_id_to_function[function_id]
-                subscribers.append(
-                    (details["function"], details["persistent"], function_id)
-                )
+                subscribers.append((details["function"], details["persistent"], function_id))
         return subscribers
 
     def subscribe(
@@ -1620,7 +1638,8 @@ class DispatcherEventSubscription:
         """
         # Find all function IDs associated with this function object.
         function_ids_to_remove = [
-            fid for fid, data in self._function_id_to_function.items()
+            fid
+            for fid, data in self._function_id_to_function.items()
             if data["function"] == function
         ]
 
@@ -1939,9 +1958,7 @@ class Dispatcher:
         # This builder will be used to construct a notification that will be sent to the subscribed functions
         # The builder allows for flexible configuration of the notification's attributes
         # before finalizing it into a DispatcherEventNotification instance.
-        result: DispatcherEventNotificationBuilder = (
-            DispatcherEventNotificationBuilder()
-        )
+        result: DispatcherEventNotificationBuilder = DispatcherEventNotificationBuilder()
 
         # Set the start time for the notification being built
         # This marks the beginning of the notification's lifecycle, allowing for tracking of its duration
@@ -2021,9 +2038,7 @@ class Dispatcher:
         # The data dictionary contains namespaces as keys and lists of subscriptions as values
         for subscription in self._subscriptions.values():
             # Check if the subscription has a namespace that matches the provided namespace
-            results.extend(
-                subscription.get_subscribers_for_namespace(namespace=namespace)
-            )
+            results.extend(subscription.get_subscribers_for_namespace(namespace=namespace))
 
         # Return the list of subscribers for the given namespace.
         # If the namespace does not exist in the subscription data, return None.
