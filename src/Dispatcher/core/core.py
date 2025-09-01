@@ -955,6 +955,29 @@ class DispatcherEventNotification:
             f"Notification content has more than one result: {self.content}. Expected exactly one result."
         )
 
+    def handle(self) -> bool:
+        """
+        Handles the notification.
+
+        This method is called when the notification is received.
+
+        Returns:
+            bool: True if the notification was handled successfully, False otherwise.
+
+        Raises:
+            ValueError: If the notification has more than one result.
+        """
+
+        # Check if the notification has errors
+        if self.has_errors():
+            # If the notification has errors, raise a ValueError
+            raise ValueError(
+                f"Notification has errors: {self.errors}. Expected no errors.",
+            )
+
+        # Return True
+        return True
+
     def has_errors(self) -> bool:
         """
         Checks if the notification has any associated errors.
