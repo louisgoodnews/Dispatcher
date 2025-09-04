@@ -32,6 +32,7 @@ __all__: Final[List[str]] = [
     "DispatcherEventSubscriptionBuilder",
     "DispatcherEventSubscriptionFactory",
     "Dispatcher",
+    "DISPATCHER",
 ]
 
 
@@ -2517,3 +2518,8 @@ class Dispatcher:
 
         # Return to indicate successful unsubscription
         return True
+
+
+# Global dispatcher instance.
+# This is a singleton instance of the Dispatcher class.
+DISPATCHER: Final[Dispatcher] = Dispatcher()
