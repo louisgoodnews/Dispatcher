@@ -22,6 +22,7 @@ from typing import (
 )
 
 __all__: Final[List[str]] = [
+    "Dispatcher",
     "DispatcherEvent",
     "DispatcherEventFactory",
     "DispatcherEventBuilder",
@@ -31,7 +32,6 @@ __all__: Final[List[str]] = [
     "DispatcherEventSubscription",
     "DispatcherEventSubscriptionBuilder",
     "DispatcherEventSubscriptionFactory",
-    "Dispatcher",
     "DISPATCHER",
 ]
 
