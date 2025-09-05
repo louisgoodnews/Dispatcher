@@ -19,6 +19,8 @@ from .core.core import (
     DISPATCHER,
 )
 
+from .utils.utils import subscribe_to_events, unsubscribe_from_events
+
 
 __all__: Final[List[str]] = [
     "Dispatcher",
@@ -32,6 +34,8 @@ __all__: Final[List[str]] = [
     "DispatcherEventSubscriptionBuilder",
     "DispatcherEventSubscriptionFactory",
     "DISPATCHER",
+    "subscribe_to_events",
+    "unsubscribe_from_events",
 ]
 
 __version__: Final[Literal["0.1.0"]] = "0.1.0"
