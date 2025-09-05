@@ -16,6 +16,7 @@ from typing import (
     Iterable,
     List,
     Optional,
+    overload,
     Self,
     Tuple,
     Union,
@@ -2133,6 +2134,85 @@ class Dispatcher:
         # Return the list of notifications for all dispatched events
         return notifications
 
+    def bulk_subscribe(
+        self,
+        event: Iterable[Union[DispatcherEvent, str]],
+        function: Callable[[Any], Any],
+        namespace: str,
+        persistent: bool = False,
+        priority: int = 0,
+    ) -> List[str]:
+        """
+        Subscribes a function to multiple events in the specified namespace.
+        This method allows a function to be associated with multiple events, enabling it to receive notifications
+        when any of the events are dispatched.
+
+        :param event: An iterable of DispatcherEvent or event names (as strings) to subscribe to.
+        :type event: Iterable[Union[DispatcherEvent, str]]
+        :param function: The function to be subscribed to the events.
+        :type function: Callable[[Any], Any]
+        :param namespace: The namespace to which the events belong.
+        :type namespace: str
+        :param persistent: Whether the subscription should persist across restarts.
+        :type persistent: bool
+        :param priority: The priority of the subscription.
+        :type priority: int
+
+        :return: A list of unique codes representing the subscriptions.
+        :rtype: List[str]
+        """
+
+        # Initialize an empty list to hold the unique codes for each subscription
+        function_ids: List[str] = []
+
+        # Iterate over each event in the provided iterable of events
+        for event in events:
+            # Subscribe the function to the event and append the resulting code to the list
+            function_ids.append(
+                self.subscribe(
+                    event=event,
+                    function=function,
+                    namespace=namespace,
+                    persistent=persistent,
+                    priority=priority,
+                )
+            )
+
+        # Return the list of unique codes for all subscriptions
+        return function_ids
+
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str] = (),
+        events: Iterable[DispatcherEvent] = (),
+        functions: Iterable[Callable[[Any], Any]] = (),
+        namespaces: Iterable[str] = (),
+    ) -> List[bool]:
+        """
+        Unsubscribes multiple functions from events based on the provided parameters.
+
+        :param function_ids: An iterable of unique function IDs for the subscriptions to be removed.
+        :param events: An iterable of DispatcherEvent instances to unsubscribe from.
+        :param functions: An iterable of functions to be unsubscribed.
+        :param namespaces: An iterable of namespaces from which to unsubscribe all functions.
+        :return: A list of booleans indicating the success of each unsubscription.
+        """
+        results: List[bool] = []
+
+        for function_id in function_ids:
+            results.append(self.unsubscribe_by_function_id(function_id=function_id))
+
+        for event in events:
+            results.append(self.unsubscribe_by_event(event=event))
+
+        for function in functions:
+            results.append(self.unsubscribe_by_function(function=function))
+
+        for namespace in namespaces:
+            results.append(self.unsubscribe_by_namespace(namespace=namespace))
+
+        return results
+
     def dispatch(
         self,
         event: DispatcherEvent,
@@ -2248,53 +2328,6 @@ class Dispatcher:
         # If the namespace does not exist in the subscription data, return None.
         return results
 
-    def bulk_subscribe(
-        self,
-        events: Iterable[Union[DispatcherEvent, str]],
-        function: Callable[[Any], Any],
-        namespace: str,
-        persistent: bool = False,
-        priority: int = 0,
-    ) -> List[str]:
-        """
-        Subscribes a function to multiple events in the specified namespace.
-        This method allows a function to be associated with multiple events, enabling it to receive notifications
-        when any of the events are dispatched.
-
-        :param events: An iterable of DispatcherEvent or event names (as strings) to subscribe to.
-        :type events: Iterable[Union[DispatcherEvent, str]]
-        :param function: The function to be subscribed to the events.
-        :type function: Callable[[Any], Any]
-        :param namespace: The namespace to which the events belong.
-        :type namespace: str
-        :param persistent: Whether the subscription should persist across restarts.
-        :type persistent: bool
-        :param priority: The priority of the subscription.
-        :type priority: int
-
-        :return: A list of unique codes representing the subscriptions.
-        :rtype: List[str]
-        """
-
-        # Initialize an empty list to hold the unique codes for each subscription
-        codes: List[str] = []
-
-        # Iterate over each event in the provided iterable of events
-        for event in events:
-            # Subscribe the function to the event and append the resulting code to the list
-            codes.append(
-                self.subscribe(
-                    event=event,
-                    function=function,
-                    namespace=namespace,
-                    persistent=persistent,
-                    priority=priority,
-                )
-            )
-
-        # Return the list of unique codes for all subscriptions
-        return codes
-
     def subscribe(
         self,
         event: Union[DispatcherEvent, str],
@@ -2356,38 +2389,6 @@ class Dispatcher:
             persistent=persistent,
             priority=priority,
         )
-
-    def bulk_unsubscribe(
-        self,
-        function_ids: Iterable[str] = (),
-        events: Iterable[DispatcherEvent] = (),
-        functions: Iterable[Callable[[Any], Any]] = (),
-        namespaces: Iterable[str] = (),
-    ) -> List[bool]:
-        """
-        Unsubscribes multiple functions from events based on the provided parameters.
-
-        :param function_ids: An iterable of unique function IDs for the subscriptions to be removed.
-        :param events: An iterable of DispatcherEvent instances to unsubscribe from.
-        :param functions: An iterable of functions to be unsubscribed.
-        :param namespaces: An iterable of namespaces from which to unsubscribe all functions.
-        :return: A list of booleans indicating the success of each unsubscription.
-        """
-        results: List[bool] = []
-
-        for function_id in function_ids:
-            results.append(self.unsubscribe_by_function_id(function_id=function_id))
-
-        for event in events:
-            results.append(self.unsubscribe_by_event(event=event))
-
-        for function in functions:
-            results.append(self.unsubscribe_by_function(function=function))
-
-        for namespace in namespaces:
-            results.append(self.unsubscribe_by_namespace(namespace=namespace))
-
-        return results
 
     def unsubscribe(
         self,
