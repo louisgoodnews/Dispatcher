@@ -1,6 +1,8 @@
 """
 Author: Louis Goodnews
 Date: 2025-09-05
+
+This module contains utility functions using the dispatcher.
 """
 
 from typing import Final, List
@@ -19,6 +21,7 @@ def subscribe_to_events(subscriptions: list[dict[str, Any]]) -> list[str]:
     Subscribes to events.
 
     This method subscribes to events and returns a list of function IDs.
+    It is a convenience function that allows you to subscribe to multiple events at once.
 
     Args:
         subscriptions (list[dict[str, Any]]): The subscriptions to subscribe to.
@@ -57,6 +60,7 @@ def unsubscribe_from_events(function_ids: list[str]) -> None:
     Unsubscribes from events.
 
     This method unsubscribes from events.
+    It is a convenience function that allows you to unsubscribe from multiple events at once.
 
     Args:
         function_ids (list[str]): The function IDs to unsubscribe from.

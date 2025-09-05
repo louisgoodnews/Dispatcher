@@ -11,7 +11,6 @@ from enum import Enum
 from typing import (
     Any,
     Callable,
-    Dict,
     Final,
     Iterable,
     List,
@@ -21,6 +20,16 @@ from typing import (
     Tuple,
     Union,
 )
+
+from core.exceptions import (
+    DispatcherDispatchingError,
+    DispatcherDispatchingFormatError,
+    DispatcherSubscriptionError,
+    DispatcherSubscriptionLookupError,
+    DispatcherUnsubscriptionError,
+)
+
+from utils.constants import GLOBAL
 
 __all__: Final[List[str]] = [
     "Dispatcher",
@@ -47,7 +56,7 @@ class DispatcherEvent:
         code (str): A unique code for the event.
         id (int): A unique identifier for the event.
         name (str): The name of the event.
-        data (Dict[str, Any]): Optional dictionary containing additional data related to the event.
+        data (dict[str, Any]): Optional dictionary containing additional data related to the event.
     """
 
     def __init__(
@@ -55,7 +64,7 @@ class DispatcherEvent:
         code: str,
         id: int,
         name: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
     ) -> None:
         """
         Initializes a new instance of the DispatcherEvent class.
@@ -69,7 +78,7 @@ class DispatcherEvent:
         :param name: The name of the event.
         :type name: str
         :param data: Optional dictionary containing additional data related to the event.
-        :type data: Optional[Dict[str, Any]]
+        :type data: Optional[dict[str, Any]]
 
         :return: None
         :rtype: None
@@ -79,7 +88,7 @@ class DispatcherEvent:
         self._code: Final[str] = code
 
         # If data is None, initialize with an empty dictionary
-        self._data: Dict[str, Any] = data if data is not None else {}
+        self._data: dict[str, Any] = data if data is not None else {}
 
         # Store the event ID
         self._id: Final[int] = id
@@ -128,13 +137,13 @@ class DispatcherEvent:
         return self._code
 
     @property
-    def data(self) -> Dict[str, Any]:
+    def data(self) -> dict[str, Any]:
         """
         Returns the data associated with the DispatcherEvent.
         This property provides access to the data dictionary, which can contain additional information related to the event.
 
         :return: The data dictionary associated with the event.
-        :rtype: Dict[str, Any]
+        :rtype: dict[str, Any]
         """
 
         # Return the data dictionary associated with the event
@@ -433,7 +442,7 @@ class DispatcherEventFactory:
     This class provides methods to create events with unique IDs and codes.
 
     Methods:
-        create_dispatcher_event(name: str, data: Optional[Dict[str, Any]] = None) -> DispatcherEvent:
+        create_dispatcher_event(name: str, data: Optional[dict[str, Any]] = None) -> DispatcherEvent:
             Creates a new DispatcherEvent with a unique ID and code.
     """
 
@@ -446,7 +455,7 @@ class DispatcherEventFactory:
     def create_dispatcher_event(
         cls,
         name: str,
-        data: Optional[Dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
     ) -> DispatcherEvent:
         """
         Creates a new DispatcherEvent with a unique ID and code.
@@ -454,7 +463,7 @@ class DispatcherEventFactory:
         :param name: The name of the event.
         :type name: str
         :param data: Optional dictionary containing additional data related to the event.
-        :type data: Optional[Dict[str, Any]]
+        :type data: Optional[dict[str, Any]]
 
         :return: A new instance of DispatcherEvent.
         :rtype: DispatcherEvent
@@ -491,7 +500,7 @@ class DispatcherEventBuilder:
     Methods:
         build() -> DispatcherEvent:
             Builds and returns a DispatcherEvent based on the current configuration.
-        with_data(**kwargs: Dict[str, Any]) -> Self:
+        with_data(**kwargs: dict[str, Any]) -> Self:
             Sets the data for the event being built using keyword arguments.
         with_name(value: str) -> Self:
             Sets the name of the event being built.
@@ -515,7 +524,7 @@ class DispatcherEventBuilder:
         # Initialize the builder with an empty configuration dictionary.
         # This dictionary will hold the configuration for the event being built.
         # It allows for flexible configuration of the event's attributes before finalizing it.
-        self._configuration: Dict[str, Any] = {}
+        self._configuration: dict[str, Any] = {}
 
     def build(self) -> DispatcherEvent:
         """
@@ -606,10 +615,10 @@ class DispatcherEventNotification:
     associated event, namespace, and start time.
 
     Attributes:
-        content (Dict[str, Any]): The content of the notification.
+        content (dict[str, Any]): The content of the notification.
         duration (float): The duration of the notification in seconds.
         end (datetime): The end time of the notification.
-        errors (List[Dict[str, Any]]): A list of errors associated with the notification.
+        errors (Iterable[dict[str, Any]]): A list of errors associated with the notification.
         event (DispatcherEvent): The associated DispatcherEvent for this notification.
         id (int): The unique identifier for the notification.
         namespace (str): The namespace associated with the notification.
@@ -619,9 +628,9 @@ class DispatcherEventNotification:
 
     def __init__(
         self,
-        content: Dict[str, Any],
+        content: dict[str, Any],
         end: datetime,
-        errors: List[Dict[str, Any]],
+        errors: Iterable[dict[str, Any]],
         event: DispatcherEvent,
         id: int,
         namespace: str,
@@ -633,11 +642,11 @@ class DispatcherEventNotification:
         This constructor sets up the notification with its content, end time, errors, associated event, namespace, and start time.
 
         :param content: The content of the notification.
-        :type content: Dict[str, Any]
+        :type content: dict[str, Any]
         :param end: The end time of the notification.
         :type end: datetime
         :param errors: A list of errors associated with the notification.
-        :type errors: List[Dict[str, Any]]
+        :type errors: Iterable[dict[str, Any]]
         :param event: The associated DispatcherEvent for this notification.
         :type event: DispatcherEvent
         :param id: The unique identifier for the notification.
@@ -654,7 +663,7 @@ class DispatcherEventNotification:
         """
 
         # Store the content of the notification.
-        self._content: Final[Dict[str, Any]] = content
+        self._content: Final[dict[str, Any]] = content
 
         # Store the duration of the notification as the difference between end and start times.
         self._duration: Final[float] = (end - start).total_seconds()
@@ -663,7 +672,7 @@ class DispatcherEventNotification:
         self._end: Final[datetime] = end
 
         # Store the errors associated with the notification.
-        self._errors: Final[List[Dict[str, Any]]] = errors
+        self._errors: Final[Iterable[dict[str, Any]]] = errors
 
         # Store the associated DispatcherEvent for this notification.
         self._event: Final[DispatcherEvent] = event
@@ -681,14 +690,14 @@ class DispatcherEventNotification:
         self._status: Final[DispatcherEventNotificationStatus] = status
 
     @property
-    def content(self) -> Dict[str, Any]:
+    def content(self) -> dict[str, Any]:
         """
         Returns the content of the notification.
 
         This property provides access to the content dictionary associated with the notification.
 
         :return: The content of the notification.
-        :rtype: Dict[str, Any]
+        :rtype: dict[str, Any]
         """
 
         # Return the content of the notification
@@ -723,14 +732,14 @@ class DispatcherEventNotification:
         return self._end
 
     @property
-    def errors(self) -> List[Dict[str, Any]]:
+    def errors(self) -> Iterable[dict[str, Any]]:
         """
         Returns the list of errors associated with the notification.
 
         This property provides access to the errors that occurred during the notification process.
 
         :return: The list of errors associated with the notification.
-        :rtype: List[Dict[str, Any]]
+        :rtype: Iterable[dict[str, Any]]
         """
 
         # Return the list of errors associated with the notification
@@ -907,23 +916,23 @@ class DispatcherEventNotification:
         # This ensures that the string representation is consistent with the __repr__ method
         return self.__repr__()
 
-    def get_function_names(self) -> List[str]:
+    def get_function_names(self) -> Iterable[str]:
         """
         Returns the function names of the notification's content dictionary.
 
         :return: The function names of the notification's content dictionary.
-        :rtype: List[str]
+        :rtype: Iterable[str]
         """
 
         # Return the contents of the notification
         return list(self.content.keys())
 
-    def get_function_results(self) -> List[Any]:
+    def get_function_results(self) -> Iterable[Any]:
         """
         Returns the function results of the notification's content dictionary.
 
         :return: The function results of the notification's content dictionary.
-        :rtype: List[Any]
+        :rtype: Iterable[Any]
         """
 
         # Return the contents of the notification
@@ -1005,8 +1014,8 @@ class DispatcherEventNotificationFactory:
             namespace: str,
             start: datetime,
             status: DispatcherEventNotificationStatus,
-            content: Optional[Dict[str, Any]] = None,
-            errors: Optional[List[Dict[str, Any]]] = None,
+            content: Optional[dict[str, Any]] = None,
+            errors: Optional[Iterable[dict[str, Any]]] = None,
         ) -> DispatcherEventNotification:
             Creates a new DispatcherEventNotification with the specified parameters.
     """
@@ -1024,8 +1033,8 @@ class DispatcherEventNotificationFactory:
         namespace: str,
         start: datetime,
         status: DispatcherEventNotificationStatus,
-        content: Optional[Dict[str, Any]] = None,
-        errors: Optional[List[Dict[str, Any]]] = None,
+        content: Optional[dict[str, Any]] = None,
+        errors: Optional[Iterable[dict[str, Any]]] = None,
     ) -> DispatcherEventNotification:
         """
         Creates a new DispatcherEventNotification with the specified parameters.
@@ -1041,9 +1050,9 @@ class DispatcherEventNotificationFactory:
         :param status: The status of the notification, indicating whether it was successful or failed.
         :type status: DispatcherEventNotificationStatus
         :param content: Optional dictionary containing the content of the notification.
-        :type content: Optional[Dict[str, Any]]
+        :type content: Optional[dict[str, Any]]
         :param errors: Optional list of errors associated with the notification.
-        :type errors: Optional[List[Dict[str, Any]]]
+        :type errors: Optional[Iterable[dict[str, Any]]]
 
         :return: A new instance of DispatcherEventNotification.
         :rtype: DispatcherEventNotification
@@ -1077,11 +1086,11 @@ class DispatcherEventNotificationBuilder:
     It provides methods to set various attributes of the notification, such as content, end time, errors, associated event, namespace, and start time.
 
     Methods:
-        with_content(**kwargs: Dict[str, Any]) -> Self:
+        with_content(**kwargs: dict[str, Any]) -> Self:
             Sets the content for the notification being built using keyword arguments.
         with_end(value: datetime) -> Self:
             Sets the end time for the notification being built.
-        with_errors(*args: Iterable[Dict[str, Any]]) -> Self:
+        with_errors(*args: Iterable[dict[str, Any]]) -> Self:
             Sets the errors for the notification being built using a list of dictionaries.
         with_event(value: DispatcherEvent) -> Self:
             Sets the associated DispatcherEvent for the notification being built.
@@ -1114,7 +1123,7 @@ class DispatcherEventNotificationBuilder:
         # The keys of the dictionary are the attribute names, and the values are the corresponding values
         # This structure allows for efficient management of notification attributes, enabling
         # a flexible and extensible way to build notifications.
-        self._configuration: Dict[str, Any] = {}
+        self._configuration: dict[str, Any] = {}
 
     def build(self) -> DispatcherEventNotification:
         """
@@ -1316,10 +1325,10 @@ class DispatcherEventSubscription:
 
     Attributes:
         _id (Final[int]): A unique identifier for this subscription object.
-        _function_id_to_function (Final[Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]]):
+        _function_id_to_function (Final[dict[str, dict[str, Union[bool, Callable[[Any], Any]]]]]):
             A dictionary mapping a unique function ID (UUID) to a dictionary containing the
             callable function and a boolean indicating if it's persistent.
-        _namespace_to_function_id (Final[Dict[str, List[str]]]):
+        _namespace_to_function_id (Final[dict[str, Iterable[str]]]):
             A dictionary mapping a namespace to a list of function IDs that are subscribed to it.
     """
 
@@ -1341,10 +1350,10 @@ class DispatcherEventSubscription:
         """
 
         self._function_id_to_function: Final[
-            Dict[str, Dict[str, Union[bool, Callable[[Any], Any]]]]
+            dict[str, dict[str, Union[bool, Callable[[Any], Any]]]]
         ] = {}
         self._id: Final[int] = id
-        self._namespace_to_function_id: Final[Dict[str, List[str]]] = {}
+        self._namespace_to_function_id: Final[dict[str, Iterable[str]]] = {}
 
         if kwargs:
             for namespace, subscriptions in kwargs.items():
@@ -1378,7 +1387,7 @@ class DispatcherEventSubscription:
     def __getitem__(
         self,
         key: str,
-    ) -> List[Tuple[Callable[[Any], Any], bool, str]]:
+    ) -> Iterable[Tuple[Callable[[Any], Any], bool, str]]:
         """
         Retrieves the list of subscriptions for a given namespace using dictionary-style access.
 
@@ -1454,7 +1463,7 @@ class DispatcherEventSubscription:
         builder: DispatcherEventNotificationBuilder,
         namespace: str,
         *args: Iterable[Any],
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> DispatcherEventNotificationBuilder:
         """
         Dispatches an event to all functions subscribed to the given namespace.
@@ -1478,14 +1487,14 @@ class DispatcherEventSubscription:
             return builder
 
         # Copy the list of function IDs to avoid modification issues during iteration.
-        function_ids_to_dispatch: List[str] = self._namespace_to_function_id[namespace][:]
+        function_ids_to_dispatch: Iterable[str] = self._namespace_to_function_id[namespace][:]
 
         # List to store non-persistent function IDs.
-        non_persistent_ids: List[str] = []
+        non_persistent_ids: Iterable[str] = []
 
         # List of tuples containing function ID and subscription details, sorted by priority.
-        function_id_to_subscription_details: List[
-            Tuple[str, Dict[str, Union[bool, Callable[[Any], Any]]]]
+        function_id_to_subscription_details: Iterable[
+            Tuple[str, dict[str, Union[bool, Callable[[Any], Any]]]]
         ] = sorted(
             [
                 (function_id, self._function_id_to_function.get(function_id))
@@ -1522,7 +1531,7 @@ class DispatcherEventSubscription:
 
                 # Set the status to success.
                 builder.with_status(value=DispatcherEventNotificationStatus.SUCCESS)
-            except Exception as e:
+            except DispatcherDispatchingError as e:
                 # Add the error to the notification builder.
                 builder.with_errors(
                     [
@@ -1544,7 +1553,7 @@ class DispatcherEventSubscription:
             try:
                 # Unsubscribe the function from the namespace.
                 self.unsubscribe_by_function_id(function_id)
-            except KeyError:
+            except DispatcherUnsubscriptionError:
                 # Might have already been removed by another operation, which is fine.
                 pass
 
@@ -1569,7 +1578,7 @@ class DispatcherEventSubscription:
         if function_id in self._function_id_to_function:
 
             # Get the subscription details.
-            details: Dict[str, Union[bool, Callable[[Any], Any]]] = self._function_id_to_function[
+            details: dict[str, Union[bool, Callable[[Any], Any]]] = self._function_id_to_function[
                 function_id
             ]
 
@@ -1582,7 +1591,7 @@ class DispatcherEventSubscription:
     def get_subscribers_for_namespace(
         self,
         namespace: str,
-    ) -> List[Tuple[Callable[[Any], Any], bool, str]]:
+    ) -> Iterable[Tuple[Callable[[Any], Any], bool, str]]:
         """
         Retrieves the list of subscribers for a given namespace.
 
@@ -1599,7 +1608,7 @@ class DispatcherEventSubscription:
             # If the namespace does not exist, return an empty list.
             return []
 
-        subscribers: List[Tuple[Callable[[Any], Any], bool, str]] = []
+        subscribers: Iterable[Tuple[Callable[[Any], Any], bool, str]] = []
 
         # Iterate over the function IDs associated with the namespace.
         for function_id in self._namespace_to_function_id[namespace]:
@@ -1608,7 +1617,7 @@ class DispatcherEventSubscription:
             if function_id in self._function_id_to_function:
 
                 # Get the subscription details.
-                details: Dict[str, Union[bool, Callable[[Any], Any]]] = (
+                details: dict[str, Union[bool, Callable[[Any], Any]]] = (
                     self._function_id_to_function[function_id]
                 )
 
@@ -1623,6 +1632,19 @@ class DispatcherEventSubscription:
 
         # Return the list of subscribers.
         return subscribers
+
+    def size(self) -> int:
+        """
+        Returns the number of subscriptions.
+
+        This method returns the total number of subscriptions in the dispatcher.
+
+        :return: The number of subscriptions.
+        :rtype: int
+        """
+
+        # Return the number of subscriptions.
+        return len(self._function_id_to_function)
 
     def subscribe(
         self,
@@ -1650,7 +1672,7 @@ class DispatcherEventSubscription:
         :return: A unique function ID for the subscription.
         :rtype: str
 
-        :raises ValueError: If the function is already subscribed to the given namespace.
+        :raises DispatcherSubscriptionError: If the function is already subscribed to the given namespace.
         """
 
         # Ensure the namespace exists in the tracking dictionary.
@@ -1662,8 +1684,8 @@ class DispatcherEventSubscription:
             for function_id in self._namespace_to_function_id[namespace]:
                 # Check if the function is already subscribed to this namespace.
                 if self._function_id_to_function[function_id]["function"] == function:
-                    # If the function is already subscribed, raise a ValueError.
-                    raise ValueError(
+                    # If the function is already subscribed, raise a DispatcherSubscriptionError.
+                    raise DispatcherSubscriptionError(
                         f"Function '{function.__name__}' is already subscribed to namespace '{namespace}'."
                     )
 
@@ -1795,7 +1817,7 @@ class DispatcherEventSubscription:
         """
 
         # Find all function IDs associated with this function object.
-        function_ids_to_remove: List[str] = [
+        function_ids_to_remove: Iterable[str] = [
             fid
             for fid, data in self._function_id_to_function.items()
             if data["function"] == function
@@ -1827,7 +1849,7 @@ class DispatcherEventSubscription:
         """
 
         # Find all function IDs associated with this function object.
-        function_ids_to_remove: List[str] = [
+        function_ids_to_remove: Iterable[str] = [
             fid
             for fid, data in self._function_id_to_function.items()
             if data["function"] == function
@@ -1864,7 +1886,7 @@ class DispatcherEventSubscription:
             raise KeyError(f"Namespace '{namespace}' not found.")
 
         # Get all function IDs for the namespace.
-        function_ids_to_remove: List[str] = self._namespace_to_function_id.pop(namespace)
+        function_ids_to_remove: Iterable[str] = self._namespace_to_function_id.pop(namespace)
 
         # Remove each function from the central registry.
         for function_id in function_ids_to_remove:
@@ -1896,13 +1918,13 @@ class DispatcherEventSubscriptionFactory:
     @classmethod
     def create_dispatcher_event_subscription(
         cls,
-        **kwargs: Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]],
+        **kwargs: dict[str, Iterable[Tuple[Callable[[Any], Any], bool, str]]],
     ) -> DispatcherEventSubscription:
         """
         Creates a new DispatcherEventSubscription instance.
 
         :param kwargs: Optional keyword arguments to initialize the subscription data.
-        :type kwargs: Dict[str, Optional[List[Tuple[Callable[[Any], Any], bool, str]]]]
+        :type kwargs: dict[str, Optional[Iterable[Tuple[Callable[[Any], Any], bool, str]]]]
 
         :return: A new instance of DispatcherEventSubscription.
         :rtype: DispatcherEventSubscription
@@ -1928,7 +1950,7 @@ class DispatcherEventSubscriptionBuilder:
     It provides methods to set various attributes of the subscription, such as id, data, and functions.
 
     Methods:
-        with_data(**kwargs: Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]]) -> Self:
+        with_data(**kwargs: dict[str, Iterable[Tuple[Callable[[Any], Any], bool, str]]]) -> Self:
             Sets the data for the subscription being built using keyword arguments.
     """
 
@@ -1947,17 +1969,17 @@ class DispatcherEventSubscriptionBuilder:
         # Initialize the builder with an empty configuration dictionary.
         # This dictionary will hold the configuration for the subscription being built.
         # It allows for flexible configuration of the subscription's attributes before finalizing it.
-        self._configuration: Dict[str, Any] = {}
+        self._configuration: dict[str, Any] = {}
 
     def with_data(
         self,
-        **kwargs: Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]],
+        **kwargs: dict[str, Iterable[Tuple[Callable[[Any], Any], bool, str]]],
     ) -> Self:
         """
         Sets the data for the subscription being built using keyword arguments.
 
         :param kwargs: Key-value pairs representing the data for the subscription.
-        :type kwargs: Dict[str, List[Tuple[Callable[[Any], Any], bool, str]]]
+        :type kwargs: dict[str, Iterable[Tuple[Callable[[Any], Any], bool, str]]]
 
         :return: The current instance of DispatcherEventSubscriptionBuilder for method chaining.
         :rtype: Self
@@ -1995,24 +2017,24 @@ class Dispatcher:
     and managing the subscriptions efficiently.
 
     Attributes:
-        _subscriptions (Dict[str, DispatcherEventSubscription]):
+        _subscriptions (dict[str, DispatcherEventSubscription]):
             A dictionary mapping event names to their corresponding DispatcherEventSubscription instances.
             Each subscription manages the functions that are subscribed to specific events.
 
     Methods:
         __init__() -> None:
             Initializes a new instance of the Dispatcher class with an empty dictionary for subscriptions.
-        subscriptions() -> Dict[str, DispatcherEventSubscription]:
+        subscriptions() -> dict[str, DispatcherEventSubscription]:
             Returns the current subscriptions of the dispatcher.
         __getitem__(key: str) -> Optional[DispatcherEventSubscription]:
             Retrieves the subscription for a given event name.
-        bulk_dispatch(events: Iterable[DispatcherEvent], namespace: str, *args: Iterable[Any], **kwargs: Dict[str, Any]) -> List[DispatcherEventNotification]:
+        bulk_dispatch(events: Iterable[DispatcherEvent], namespace: str, *args: Iterable[Any], **kwargs: dict[str, Any]) -> Iterable[DispatcherEventNotification]:
             Dispatches multiple events to the subscribed functions in the specified namespace.
-        bulk_subscribe(events: Iterable[DispatcherEvent], namespace: str, function: Callable[[Any], Any], persistent: bool = False) -> List[str]:
+        bulk_subscribe(events: Iterable[DispatcherEvent], namespace: str, function: Callable[[Any], Any], persistent: bool = False) -> Iterable[str]:
             Subscribes multiple functions to a namespace with an optional persistence flag.
-        bulk_unsubscribe(events: Iterable[DispatcherEvent], namespace: str, function: Optional[Callable[[Any], Any]] = None) -> List[bool]:
+        bulk_unsubscribe(events: Iterable[DispatcherEvent], namespace: str, function: Optional[Callable[[Any], Any]] = None) -> Iterable[bool]:
             Unsubscribes multiple functions from a namespace or by their unique codes.
-        dispatch(event: DispatcherEvent, namespace: str, *args: Iterable[Any], **kwargs: Dict[str, Any]) -> DispatcherEventNotification:
+        dispatch(event: DispatcherEvent, namespace: str, *args: Iterable[Any], **kwargs: dict[str, Any]) -> DispatcherEventNotification:
             Dispatches an event to the subscribed functions in the specified namespace.
         subscribe(namespace: str, function: Callable[[Any], Any], persistent: bool = False) -> str:
             Subscribes a function to a namespace with an optional persistence flag.
@@ -2050,10 +2072,10 @@ class Dispatcher:
         #     "event_name1": DispatcherEventSubscription(...),
         #     "event_name2": DispatcherEventSubscription(...),
         # }
-        self._subscriptions: Final[Dict[str, DispatcherEventSubscription]] = {}
+        self._subscriptions: Final[dict[str, DispatcherEventSubscription]] = {}
 
     @property
-    def subscriptions(self) -> Dict[str, DispatcherEventSubscription]:
+    def subscriptions(self) -> dict[str, DispatcherEventSubscription]:
         """
         Returns the current subscriptions of the dispatcher.
 
@@ -2062,7 +2084,7 @@ class Dispatcher:
         that manages the functions subscribed to that event.
 
         :return: The dictionary of event subscriptions.
-        :rtype: Dict[str, DispatcherEventSubscription]
+        :rtype: dict[str, DispatcherEventSubscription]
         """
 
         # Return the current subscriptions of the dispatcher
@@ -2091,82 +2113,305 @@ class Dispatcher:
             None,
         )
 
+    @overload
+    def bulk_dispatch(
+        self,
+        events: DispatcherEvent,
+        namespace: str,
+        dispatch_args_and_kwargs_per_event: bool = False,
+        *args: Any,
+        **kwargs: Any,
+    ) -> List[DispatcherEventNotification]: ...
+
+    @overload
     def bulk_dispatch(
         self,
         events: Iterable[DispatcherEvent],
         namespace: str,
-        *args: Iterable[Any],
-        **kwargs: Dict[str, Any],
-    ) -> List[DispatcherEventNotification]:
+        dispatch_args_and_kwargs_per_event: bool = False,
+        *args: Any,
+        **kwargs: Any,
+    ) -> List[DispatcherEventNotification]: ...
+
+    def bulk_dispatch(
+        self,
+        events: Union[DispatcherEvent, Iterable[DispatcherEvent]],
+        namespaces: Union[Iterable[str], str],
+        dispatch_args_and_kwargs_per_event: bool = False,
+        *args: Tuple[Any],
+        **kwargs: dict[str, Any],
+    ) -> Iterable[DispatcherEventNotification]:
         """
         Dispatches multiple events to the subscribed functions in the specified namespace.
         This method iterates over a list of DispatcherEvent instances and dispatches each one,
         returning a list of DispatcherEventNotification instances for each dispatched event.
 
-        :param events: An iterable of DispatcherEvent instances to be dispatched.
-        :type events: Iterable[DispatcherEvent]
-        :param namespace: The namespace to which the events belong.
-        :type namespace: str
+        This method can dispatch events with arguments and keyword arguments per event.
+        If dispatch_args_and_kwargs_per_event is True, the arguments and keyword arguments are passed to the subscribed functions.
+
+        In this case args MUST be a tuple of tuples with the size of the outer tuple corresponding to the
+        number of events to dispatch and kwargs MUST be a dictionary of dictionaries,
+        where the event's name is the key and the value is the dictionary of keyword arguments.
+
+        :param events: A list of DispatcherEvent instances to be dispatched.
+        :type events: Union[DispatcherEvent, Iterable[DispatcherEvent]]
+        :param namespaces: The namespaces to which the events belong.
+        :type namespaces: Union[Iterable[str], str]
+        :param dispatch_args_and_kwargs_per_event: Whether to dispatch the events with the arguments and keyword arguments per event.
+        :type dispatch_args_and_kwargs_per_event: bool
         :param args: Additional positional arguments to pass to the subscribed functions.
-        :type args: Iterable[Any]
+        :type args: Tuple[Any]
         :param kwargs: Additional keyword arguments to pass to the subscribed functions.
-        :type kwargs: Dict[str, Any]
+        :type kwargs: dict[str, Any]
 
         :return: A list of DispatcherEventNotification instances for each dispatched event.
-        :rtype: List[DispatcherEventNotification]
+        :rtype: Iterable[DispatcherEventNotification]
         """
 
-        # Initialize an empty list to hold the notifications for each dispatched event
-        notifications: List[DispatcherEventNotification] = []
+        from collections.abc import Iterable
 
-        # Iterate over each event in the provided iterable of events
-        for event in events:
-            # Dispatch the current event and append the resulting notification to the list
-            notifications.append(
-                self.dispatch(
-                    event=event,
-                    namespace=namespace,
-                    *args,
-                    **kwargs,
+        def ensure_list(
+            value,
+            length: int,
+        ) -> Iterable[Any]:
+            """
+            Ensures that the value is an iterable.
+            If the value is not an iterable, it returns a list with the value repeated length times.
+            If the value is an iterable, it returns the value as a list.
+
+            :param value: The value to be converted to a list.
+            :type value: Any
+            :param length: The length of the list.
+            :type length: int
+
+            :return: A list with the value repeated length times.
+            :rtype: Iterable[Any]
+            """
+
+            # Check if the value is an iterable and not a string or bytes
+            if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                # Return the value as a list
+                return list(value)
+            else:
+                # Return a list with the value repeated length times
+                return [value] * length
+
+        # Ensure that the events are an iterable
+        events = ensure_list(events, 1 if not isinstance(events, Iterable) else len(events))
+
+        # Get the number of events
+        number_of_events = len(events)
+
+        # Initialize an empty list to hold the notifications for each dispatched event
+        notifications: list[DispatcherEventNotification] = []
+
+        if dispatch_args_and_kwargs_per_event:
+            # Iterate over each event in the provided iterable of events
+            for (
+                event,
+                namespace,
+                arg,
+            ) in zip(
+                *(
+                    events,
+                    ensure_list(namespaces, number_of_events),
+                    ensure_list(args, number_of_events),
+                ),
+                strict=True,
+            ):
+                # Check if arg is a tuple
+                if not isinstance(arg, tuple):
+                    # If arg is not a tuple, it is not a tuple of tuples
+                    raise DispatcherDispatchingFormatError("args must be a tuple of tuples")
+
+                # Check if the event name is in kwargs and if it is a dictionary
+                if not isinstance(kwargs.get(event.name, None), dict):
+                    # If the event name is not in kwargs, it is not a dictionary of dictionaries
+                    raise DispatcherDispatchingFormatError(
+                        "kwargs must be a dictionary of dictionaries"
+                    )
+
+                # Dispatch the current event and append the resulting notification to the list
+                notifications.append(
+                    self.dispatch(
+                        event=event,
+                        namespace=namespace,
+                        *arg,
+                        **kwargs.get(event.name, {}),
+                    )
                 )
-            )
+        else:
+            # Iterate over each event in the provided iterable of events
+            for (
+                event,
+                namespace,
+            ) in zip(
+                *(
+                    events,
+                    ensure_list(namespaces, number_of_events),
+                ),
+                strict=True,
+            ):
+                # Dispatch the current event and append the resulting notification to the list
+                notifications.append(
+                    self.dispatch(
+                        event=event,
+                        namespace=namespace,
+                        *args,
+                        **kwargs,
+                    )
+                )
 
         # Return the list of notifications for all dispatched events
         return notifications
 
+    @overload
     def bulk_subscribe(
         self,
-        event: Iterable[Union[DispatcherEvent, str]],
-        function: Callable[[Any], Any],
-        namespace: str,
-        persistent: bool = False,
-        priority: int = 0,
-    ) -> List[str]:
+        events: Iterable[Union[DispatcherEvent, str]],
+        functions: Callable[[Any], Any],
+        namespaces: str = GLOBAL,
+        persistents: bool = ...,
+        priorities: int = ...,
+    ) -> Iterable[str]: ...
+
+    @overload
+    def bulk_subscribe(
+        self,
+        events: Iterable[Union[DispatcherEvent, str]],
+        functions: Iterable[Callable[[Any], Any]],
+        namespaces: str = GLOBAL,
+        persistents: bool = ...,
+        priorities: int = ...,
+    ) -> Iterable[str]: ...
+
+    @overload
+    def bulk_subscribe(
+        self,
+        events: Iterable[Union[DispatcherEvent, str]],
+        functions: Iterable[Callable[[Any], Any]],
+        namespaces: Iterable[str],
+        persistents: bool = ...,
+        priorities: int = ...,
+    ) -> Iterable[str]: ...
+
+    @overload
+    def bulk_subscribe(
+        self,
+        events: Iterable[Union[DispatcherEvent, str]],
+        functions: Iterable[Callable[[Any], Any]],
+        namespaces: Iterable[str],
+        persistents: Iterable[bool],
+        priorities: Iterable[int],
+    ) -> Iterable[str]: ...
+
+    @overload
+    def bulk_subscribe(
+        self,
+        events: Iterable[Union[DispatcherEvent, str]],
+        functions: Iterable[Callable[[Any], Any]],
+        namespaces: Iterable[str],
+        persistents: Iterable[bool],
+        priorities: Iterable[int],
+    ) -> Iterable[str]: ...
+
+    def bulk_subscribe(
+        self,
+        events: Union[Iterable[Union[DispatcherEvent, str]], Union[DispatcherEvent, str]],
+        functions: Union[Callable[[Any], Any], Iterable[Callable[[Any], Any]]],
+        namespaces: Union[Iterable[str], str],
+        persistents: Union[bool, Iterable[bool]] = False,
+        priorities: Union[int, Iterable[int]] = 0,
+    ) -> Iterable[str]:
         """
         Subscribes a function to multiple events in the specified namespace.
         This method allows a function to be associated with multiple events, enabling it to receive notifications
         when any of the events are dispatched.
 
-        :param event: An iterable of DispatcherEvent or event names (as strings) to subscribe to.
-        :type event: Iterable[Union[DispatcherEvent, str]]
-        :param function: The function to be subscribed to the events.
-        :type function: Callable[[Any], Any]
-        :param namespace: The namespace to which the events belong.
-        :type namespace: str
-        :param persistent: Whether the subscription should persist across restarts.
-        :type persistent: bool
-        :param priority: The priority of the subscription.
-        :type priority: int
+        :param events: A list of DispatcherEvent or event names (as strings) to subscribe to.
+        :type events: Iterable[Union[DispatcherEvent, str]]
+        :param functions: The function to be subscribed to the events.
+        :type functions: Callable[[Any], Any]
+        :param namespaces: The namespace to which the events belong.
+        :type namespaces: str
+        :param persistents: Whether the subscription should persist across restarts.
+        :type persistents: bool
+        :param priorities: The priority of the subscription.
+        :type priorities: int
 
         :return: A list of unique codes representing the subscriptions.
-        :rtype: List[str]
+        :rtype: Iterable[str]
         """
 
+        from collections.abc import Iterable
+
+        def ensure_list(
+            value,
+            length: int,
+        ) -> Iterable[Any]:
+            """
+            Ensures that the value is an iterable.
+            If the value is not an iterable, it returns a list with the value repeated length times.
+            If the value is an iterable, it returns the value as a list.
+
+            :param value: The value to be converted to a list.
+            :type value: Any
+            :param length: The length of the list.
+            :type length: int
+
+            :return: A list with the value repeated length times.
+            :rtype: Iterable[Any]
+            """
+
+            # Check if the value is an iterable and not a string or bytes
+            if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                # Return the value as a list
+                return list(value)
+            else:
+                # Return a list with the value repeated length times
+                return [value] * length
+
+        #  Check if events is an iterable and not a string or bytes
+        events = ensure_list(events, 1 if not isinstance(events, Iterable) else len(events))
+
+        # Get the number of events
+        number_of_events: int = len(events)
+
         # Initialize an empty list to hold the unique codes for each subscription
-        function_ids: List[str] = []
+        function_ids: Iterable[str] = []
 
         # Iterate over each event in the provided iterable of events
-        for event in events:
+        for (
+            event,
+            function,
+            namespace,
+            persistent,
+            priority,
+        ) in zip(
+            *(
+                ensure_list(
+                    events,
+                    number_of_events,
+                ),
+                ensure_list(
+                    functions,
+                    number_of_events,
+                ),
+                ensure_list(
+                    namespaces,
+                    number_of_events,
+                ),
+                ensure_list(
+                    persistents,
+                    number_of_events,
+                ),
+                ensure_list(
+                    priorities,
+                    number_of_events,
+                ),
+            ),
+            strict=True,
+        ):
             # Subscribe the function to the event and append the resulting code to the list
             function_ids.append(
                 self.subscribe(
@@ -2181,44 +2426,134 @@ class Dispatcher:
         # Return the list of unique codes for all subscriptions
         return function_ids
 
+    @overload
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str],
+        events: Iterable[DispatcherEvent] = ...,
+        functions: Iterable[Callable[[Any], Any]] = ...,
+        namespaces: Iterable[str] = ...,
+    ) -> Iterable[bool]: ...
+
+    @overload
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str] = ...,
+        events: Iterable[DispatcherEvent] = ...,
+        functions: Iterable[Callable[[Any], Any]] = ...,
+        namespaces: Iterable[str] = ...,
+    ) -> Iterable[bool]: ...
+
+    @overload
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str] = ...,
+        events: Iterable[DispatcherEvent] = ...,
+        functions: Iterable[Callable[[Any], Any]] = ...,
+        namespaces: Iterable[str] = ...,
+    ) -> Iterable[bool]: ...
+
+    @overload
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str] = ...,
+        events: Iterable[DispatcherEvent] = ...,
+        functions: Iterable[Callable[[Any], Any]] = ...,
+        namespaces: Iterable[str] = ...,
+    ) -> Iterable[bool]: ...
+
+    @overload
+    def bulk_unsubscribe(
+        self,
+        function_ids: Iterable[str],
+        events: Iterable[DispatcherEvent],
+        functions: Iterable[Callable[[Any], Any]],
+        namespaces: Iterable[str],
+    ) -> Iterable[bool]: ...
+
     def bulk_unsubscribe(
         self,
         function_ids: Iterable[str] = (),
         events: Iterable[DispatcherEvent] = (),
         functions: Iterable[Callable[[Any], Any]] = (),
         namespaces: Iterable[str] = (),
-    ) -> List[bool]:
+    ) -> Iterable[bool]:
         """
         Unsubscribes multiple functions from events based on the provided parameters.
 
-        :param function_ids: An iterable of unique function IDs for the subscriptions to be removed.
-        :param events: An iterable of DispatcherEvent instances to unsubscribe from.
-        :param functions: An iterable of functions to be unsubscribed.
-        :param namespaces: An iterable of namespaces from which to unsubscribe all functions.
+        :param function_ids: A list of unique function IDs for the subscriptions to be removed.
+        :param events: A list of DispatcherEvent instances to unsubscribe from.
+        :param functions: A list of functions to be unsubscribed.
+        :param namespaces: A list of namespaces from which to unsubscribe all functions.
         :return: A list of booleans indicating the success of each unsubscription.
         """
-        results: List[bool] = []
 
-        for function_id in function_ids:
+        from collections.abc import Iterable
+
+        def ensure_list(
+            value,
+            length: int,
+        ) -> Iterable[Any]:
+            """
+            Ensures that the value is an iterable.
+            If the value is not an iterable, it returns a list with the value repeated length times.
+            If the value is an iterable, it returns the value as a list.
+
+            :param value: The value to be converted to a list.
+            :type value: Any
+            :param length: The length of the list.
+            :type length: int
+
+            :return: A list with the value repeated length times.
+            :rtype: Iterable[Any]
+            """
+
+            # Check if the value is an iterable and not a string or bytes
+            if isinstance(value, Iterable) and not isinstance(value, (str, bytes)):
+                # Return the value as a list
+                return list(value)
+            else:
+                # Return a list with the value repeated length times
+                return [value] * length
+
+        # Initialize an empty list to hold the results
+        results: Iterable[bool] = []
+
+        # Iterate over each function ID in the provided iterable of function IDs
+        for function_id in ensure_list(
+            function_ids, 1 if not isinstance(function_ids, Iterable) else len(function_ids)
+        ):
+            # Unsubscribe the function by its ID and append the result to the list
             results.append(self.unsubscribe_by_function_id(function_id=function_id))
 
-        for event in events:
+        # Iterate over each event in the provided iterable of events
+        for event in ensure_list(events, 1 if not isinstance(events, Iterable) else len(events)):
+            # Unsubscribe the event and append the result to the list
             results.append(self.unsubscribe_by_event(event=event))
 
-        for function in functions:
+        # Iterate over each function in the provided iterable of functions
+        for function in ensure_list(
+            functions, 1 if not isinstance(functions, Iterable) else len(functions)
+        ):
+            # Unsubscribe the function and append the result to the list
             results.append(self.unsubscribe_by_function(function=function))
 
-        for namespace in namespaces:
+        # Iterate over each namespace in the provided iterable of namespaces
+        for namespace in ensure_list(
+            namespaces, 1 if not isinstance(namespaces, Iterable) else len(namespaces)
+        ):
+            # Unsubscribe the namespace and append the result to the list
             results.append(self.unsubscribe_by_namespace(namespace=namespace))
 
+        # Return the list of results
         return results
 
     def dispatch(
         self,
         event: DispatcherEvent,
-        namespace: str,
+        namespace: str = GLOBAL,
         *args: Iterable[Any],
-        **kwargs: Dict[str, Any],
+        **kwargs: dict[str, Any],
     ) -> DispatcherEventNotification:
         """
         Dispatches an event to the subscribed functions in the specified namespace.
@@ -2227,12 +2562,12 @@ class Dispatcher:
 
         :param event: The DispatcherEvent to be dispatched.
         :type event: DispatcherEvent
-        :param namespace: The namespace to which the event belongs.
+        :param namespace: The namespace to which the event belongs. Defaults to 'global'.
         :type namespace: str
         :param args: Additional positional arguments to pass to the subscribed functions.
         :type args: Iterable[Any]
         :param kwargs: Additional keyword arguments to pass to the subscribed functions.
-        :type kwargs: Dict[str, Any]
+        :type kwargs: dict[str, Any]
 
         :return: A DispatcherEventNotification containing the event data and notification details.
         :rtype: DispatcherEventNotification
@@ -2301,7 +2636,7 @@ class Dispatcher:
     def get_subscribers_for_namespace(
         self,
         namespace: str,
-    ) -> List[Tuple[Callable[[Any], Any], bool, str]]:
+    ) -> Iterable[Tuple[Callable[[Any], Any], bool, str]]:
         """
         Retrieves the subscribers for a specific namespace.
         This method returns a list of tuples containing the functions, their persistence status,
@@ -2312,11 +2647,11 @@ class Dispatcher:
 
         :return: A list of tuples containing the function, persistence flag, and code for each subscriber,
                  or None if the namespace does not exist.
-        :rtype: Optional[List[Tuple[Callable[[Any], Any], bool, str]]]
+        :rtype: Optional[Iterable[Tuple[Callable[[Any], Any], bool, str]]]
         """
 
         # Initialize an empty list to hold the results of subscribers for the given namespace
-        results: Optional[List[Tuple[Callable[[Any], Any], bool, str]]] = []
+        results: Optional[Iterable[Tuple[Callable[[Any], Any], bool, str]]] = []
 
         # Iterate through the subscriptions in the data dictionary
         # The data dictionary contains namespaces as keys and lists of subscriptions as values
@@ -2327,6 +2662,27 @@ class Dispatcher:
         # Return the list of subscribers for the given namespace.
         # If the namespace does not exist in the subscription data, return None.
         return results
+
+    def size(self) -> int:
+        """
+        Returns the number of subscriptions.
+
+        This method returns the total number of subscriptions in the dispatcher.
+
+        :return: The number of subscriptions.
+        :rtype: int
+        """
+
+        # Initialize a counter to keep track of the total number of subscriptions
+        result: int = 0
+
+        # Iterate over the subscriptions in the data dictionary
+        for subscription in self._subscriptions.values():
+            # Add the size of each subscription to the counter
+            result += subscription.size()
+
+        # Return the total number of subscriptions.
+        return result
 
     def subscribe(
         self,
@@ -2401,21 +2757,35 @@ class Dispatcher:
         Unsubscribes a function from an event based on the provided parameters.
 
         :param function_id: The unique ID of the subscription to remove.
+        :type function_id: Optional[str]
         :param event: The event to unsubscribe from.
+        :type event: Optional[DispatcherEvent]
         :param function: The function to unsubscribe.
+        :type function: Optional[Callable[[Any], Any]]
         :param namespace: The namespace to unsubscribe from.
+        :type namespace: Optional[str]
+
         :return: True if the unsubscription was successful.
+        :rtype: bool
+
         :raises ValueError: If no identifying parameter is provided.
         """
+
+        # Unsubscribe based on the provided parameters
         if function_id is not None:
+            # Unsubscribe based on the function ID
             return self.unsubscribe_by_function_id(function_id=function_id)
         elif event is not None:
+            # Unsubscribe based on the event
             return self.unsubscribe_by_event(event=event)
         elif function is not None:
+            # Unsubscribe based on the function
             return self.unsubscribe_by_function(function=function)
         elif namespace is not None:
+            # Unsubscribe based on the namespace
             return self.unsubscribe_by_namespace(namespace=namespace)
         else:
+            # If no identifying parameter is provided, raise a ValueError
             raise ValueError(
                 "At least one parameter (function_id, event, function, or namespace) must be provided."
             )
@@ -2423,7 +2793,14 @@ class Dispatcher:
     def unsubscribe_all(self) -> None:
         """
         Unsubscribes all functions from all events, clearing all subscriptions.
+
+        This method unsubscribes all functions from all events, clearing all subscriptions.
+
+        :return: None
+        :rtype: None
         """
+
+        # Clear all subscriptions
         self._subscriptions.clear()
 
     def unsubscribe_by_function_id(self, function_id: str) -> bool:
@@ -2431,18 +2808,30 @@ class Dispatcher:
         Unsubscribes a function from an event using its unique function ID.
 
         :param function_id: The unique ID of the subscription to remove.
+        :type function_id: str
+
         :return: True if the subscription was successfully removed.
-        :raises KeyError: If no subscription with the given function ID is found.
+        :rtype: bool
+
+        :raises DispatcherUnsubscriptionError: If no subscription with the given function ID is found.
         """
+
+        # Iterate over the subscriptions
         for subscription in self._subscriptions.values():
             try:
                 # This will succeed if the function_id is in this subscription object.
                 if subscription.unsubscribe_by_function_id(function_id=function_id):
+
+                    # If the function_id was found, return True.
                     return True
             except (KeyError, ValueError):
+                # If no subscription was found, continue to the next subscription.
                 continue
 
-        raise KeyError(f"No subscription found with function ID '{function_id}'.")
+        # If no subscription was found, raise a DispatcherUnsubscriptionError
+        raise DispatcherUnsubscriptionError(
+            f"No subscription found with function ID '{function_id}'."
+        )
 
     def unsubscribe_by_event(
         self,
@@ -2461,11 +2850,11 @@ class Dispatcher:
 
         # Check if the event's name exists in the subscriptions
         if event.name not in self._subscriptions:
-            # If it does not exist, raise a ValueError
-            raise ValueError(f"Event '{event.name}' does not exist.")
+            # If it does not exist, raise a DispatcherSubscriptionLookupError
+            raise DispatcherSubscriptionLookupError(f"Event '{event.name}' does not exist.")
 
         # Unsubscribe all functions associated with the event's name
-        del self._subscriptions[event.name]
+        self._subscriptions.pop(event.name)
 
         # Return to indicate successful unsubscription
         return True
@@ -2489,11 +2878,13 @@ class Dispatcher:
         for subscription in self._subscriptions.values():
             try:
                 subscription.unsubscribe_by_function(function=function)
-            except ValueError:
+            except DispatcherUnsubscriptionError:
                 continue
 
-        # If no matching subscription was found, raise a ValueError
-        raise ValueError(f"No subscription found for function '{function.__name__}'.")
+        # If no matching subscription was found, raise a DispatcherUnsubscriptionError
+        raise DispatcherUnsubscriptionError(
+            f"No subscription found for function '{function.__name__}'."
+        )
 
     def unsubscribe_by_namespace(
         self,
@@ -2514,7 +2905,7 @@ class Dispatcher:
         for subscription in self._subscriptions.values():
             try:
                 subscription.unsubscribe_by_namespace(namespace=namespace)
-            except ValueError:
+            except DispatcherUnsubscriptionError:
                 continue
 
         # Return to indicate successful unsubscription
