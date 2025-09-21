@@ -607,6 +607,14 @@ class DispatcherEventNotificationStatus(Enum):
     # Status indicating that the notification failed.
     FAILURE = "failure"
 
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the enum value.
+
+        :return: The string representation of the enum value.
+        """
+        return self.value
+
 
 class DispatcherEventNotification:
     """
@@ -1349,25 +1357,49 @@ class DispatcherEventSubscription:
                        and the value is a list of subscription tuples (function, persistent, function_id).
         """
 
+        # Initialize the function ID to function dictionary
         self._function_id_to_function: Final[
             dict[str, dict[str, Union[bool, Callable[[Any], Any]]]]
         ] = {}
+
+        # Store the pased id argument in an instance variable
         self._id: Final[int] = id
+
+        # Initialize the namespace to function ID dictionary
         self._namespace_to_function_id: Final[dict[str, Iterable[str]]] = {}
 
-        if kwargs:
-            for namespace, subscriptions in kwargs.items():
-                if namespace not in self._namespace_to_function_id:
-                    self._namespace_to_function_id[namespace] = []
+        # Check if any keyword arguments are provided
+        if not kwargs:
+            # Return early if no keyword arguments are provided
+            return
 
-                for subscription_tuple in subscriptions:
-                    function, persistent, function_id = subscription_tuple
+        # Iterate over the keyword arguments
+        for (
+            namespace,
+            subscriptions,
+        ) in kwargs.items():
+            # Check if the namespace is already in the dictionary
+            if namespace not in self._namespace_to_function_id:
+                # If not, initialize it with an empty list
+                self._namespace_to_function_id[namespace] = []
 
-                    self._namespace_to_function_id[namespace].append(function_id)
-                    self._function_id_to_function[function_id] = {
-                        "function": function,
-                        "persistent": persistent,
-                    }
+            # Iterate over the subscriptions
+            for subscription_tuple in subscriptions:
+                # Unpack the subscription tuple
+                (
+                    function,
+                    persistent,
+                    function_id,
+                ) = subscription_tuple
+
+                # Add the function ID to the namespace list
+                self._namespace_to_function_id[namespace].append(function_id)
+
+                # Add the function to the function ID dictionary
+                self._function_id_to_function[function_id] = {
+                    "function": function,
+                    "persistent": persistent,
+                }
 
     @property
     def id(self) -> int:
@@ -2803,7 +2835,10 @@ class Dispatcher:
         # Clear all subscriptions
         self._subscriptions.clear()
 
-    def unsubscribe_by_function_id(self, function_id: str) -> bool:
+    def unsubscribe_by_function_id(
+        self,
+        function_id: str,
+    ) -> bool:
         """
         Unsubscribes a function from an event using its unique function ID.
 

@@ -5,9 +5,9 @@ Date: 2025-09-05
 This module contains utility functions using the dispatcher.
 """
 
-from typing import Final, List
+from typing import Any, Final, List
 
-from core.core import DISPATCHER
+from core.core import DISPATCHER, GLOBAL
 
 
 __all__: Final[List[str]] = [
@@ -74,3 +74,6 @@ def unsubscribe_from_events(function_ids: list[str]) -> None:
         except Exception as e:
             # Re-raise the exception to the caller
             raise e
+
+    # Clear the function IDs list
+    function_ids.clear()
