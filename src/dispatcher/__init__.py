@@ -5,8 +5,9 @@ Date: 2025-09-05
 
 from typing import Final, List, Literal
 
+from .common.constants import DISPATCHER, GLOBAL, LOCAL
+
 from .core.core import (
-    DISPATCHER,
     Dispatcher,
     DispatcherEvent,
     DispatcherEventBuilder,
@@ -20,13 +21,13 @@ from .core.core import (
     DispatcherEventSubscriptionFactory,
 )
 
-from .utils.constants import GLOBAL, LOCAL
-
 from .utils.utils import subscribe_to_events, unsubscribe_from_events
 
 
 __all__: Final[List[str]] = [
     "DISPATCHER",
+    "GLOBAL",
+    "LOCAL",
     "Dispatcher",
     "DispatcherEvent",
     "DispatcherEventBuilder",
@@ -38,8 +39,6 @@ __all__: Final[List[str]] = [
     "DispatcherEventSubscription",
     "DispatcherEventSubscriptionBuilder",
     "DispatcherEventSubscriptionFactory",
-    "GLOBAL",
-    "LOCAL",
     "subscribe_to_events",
     "unsubscribe_from_events",
 ]

@@ -5,15 +5,9 @@ Date: 2025-09-05
 This module contains utility functions using the dispatcher.
 """
 
-from typing import Any, Final, List
+from typing import Any, Final
 
-from core.core import DISPATCHER, GLOBAL
-
-
-__all__: Final[List[str]] = [
-    "subscribe_to_events",
-    "unsubscribe_from_events",
-]
+from common.constants import DISPATCHER
 
 
 def subscribe_to_events(subscriptions: list[dict[str, Any]]) -> list[str]:
@@ -40,7 +34,7 @@ def subscribe_to_events(subscriptions: list[dict[str, Any]]) -> list[str]:
             function_id: str = DISPATCHER.subscribe(
                 event=subscription["event"],
                 function=subscription["function"],
-                namespace=subscription.get("namespace", GLOBAL),
+                namespace=subscription.get("namespace", "global"),
                 persistent=subscription.get("persistent", False),
                 priority=subscription.get("priority", 0),
             )
@@ -77,3 +71,6 @@ def unsubscribe_from_events(function_ids: list[str]) -> None:
 
     # Clear the function IDs list
     function_ids.clear()
+
+
+__all__: Final[List[str]] = [name for name in globals() if not name.startswith("_")]

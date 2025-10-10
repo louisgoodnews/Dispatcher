@@ -29,22 +29,6 @@ from core.exceptions import (
     DispatcherUnsubscriptionError,
 )
 
-from utils.constants import GLOBAL
-
-__all__: Final[List[str]] = [
-    "Dispatcher",
-    "DispatcherEvent",
-    "DispatcherEventFactory",
-    "DispatcherEventBuilder",
-    "DispatcherEventNotification",
-    "DispatcherEventNotificationFactory",
-    "DispatcherEventNotificationBuilder",
-    "DispatcherEventSubscription",
-    "DispatcherEventSubscriptionBuilder",
-    "DispatcherEventSubscriptionFactory",
-    "DISPATCHER",
-]
-
 
 class DispatcherEvent:
     """
@@ -2302,7 +2286,7 @@ class Dispatcher:
         self,
         events: Iterable[Union[DispatcherEvent, str]],
         functions: Callable[[Any], Any],
-        namespaces: str = GLOBAL,
+        namespaces: str = "global",
         persistents: bool = ...,
         priorities: int = ...,
     ) -> Iterable[str]: ...
@@ -2312,7 +2296,7 @@ class Dispatcher:
         self,
         events: Iterable[Union[DispatcherEvent, str]],
         functions: Iterable[Callable[[Any], Any]],
-        namespaces: str = GLOBAL,
+        namespaces: str = "global",
         persistents: bool = ...,
         priorities: int = ...,
     ) -> Iterable[str]: ...
@@ -2583,7 +2567,7 @@ class Dispatcher:
     def dispatch(
         self,
         event: DispatcherEvent,
-        namespace: str = GLOBAL,
+        namespace: str = "global",
         *args: Iterable[Any],
         **kwargs: dict[str, Any],
     ) -> DispatcherEventNotification:
@@ -2947,6 +2931,4 @@ class Dispatcher:
         return True
 
 
-# Global dispatcher instance.
-# This is a singleton instance of the Dispatcher class.
-DISPATCHER: Final[Dispatcher] = Dispatcher()
+__all__: Final[List[str]] = [name for name in globals() if not name.startswith("_")]

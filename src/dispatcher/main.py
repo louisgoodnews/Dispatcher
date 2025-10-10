@@ -81,7 +81,7 @@ def main() -> None:
     # This means that the subscriber will no longer receive events for this subscription
     # Unsubscribing is useful when the subscriber is no longer interested in receiving events
     # or when the subscriber is being removed from the system
-    dispatcher.unsubscribe(code=subscription)
+    dispatcher.unsubscribe(function_id=subscription)
 
 
 if __name__ == "__main__":

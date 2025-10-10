@@ -5,17 +5,7 @@ Date: 2025-09-05
 This module contains custom exceptions used by the dispatcher.
 """
 
-from typing import Final, List
-
-
-__all__: Final[List[str]] = [
-    "DispatcherError",
-    "DispatcherDispatchingError",
-    "DispatcherDispatchingFormatError",
-    "DispatcherSubscriptionError",
-    "DispatcherSubscriptionLookupError",
-    "DispatcherUnsubscriptionError",
-]
+from typing import Final
 
 
 class DispatcherError(Exception):
@@ -52,3 +42,6 @@ class DispatcherUnsubscriptionError(DispatcherError):
     """
     Exception class for unsubscription errors.
     """
+
+
+__all__: Final[List[str]] = [name for name in globals() if not name.startswith("_")]
