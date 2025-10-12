@@ -5,7 +5,7 @@ Date: 2025-09-05
 
 from typing import Final, List, Literal
 
-from .common.constants import DISPATCHER, GLOBAL, LOCAL
+from .common.constants import GLOBAL, LOCAL
 
 from .core.core import (
     Dispatcher,

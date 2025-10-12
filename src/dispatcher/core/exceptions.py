@@ -44,4 +44,4 @@ class DispatcherUnsubscriptionError(DispatcherError):
     """
 
 
-__all__: Final[List[str]] = [name for name in globals() if not name.startswith("_")]
+__all__: Final[list[str]] = [name for name in globals() if not name.startswith("_")]

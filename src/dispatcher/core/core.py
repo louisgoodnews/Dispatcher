@@ -21,7 +21,7 @@ from typing import (
     Union,
 )
 
-from core.exceptions import (
+from dispatcher.core.exceptions import (
     DispatcherDispatchingError,
     DispatcherDispatchingFormatError,
     DispatcherSubscriptionError,
@@ -2137,7 +2137,7 @@ class Dispatcher:
         dispatch_args_and_kwargs_per_event: bool = False,
         *args: Any,
         **kwargs: Any,
-    ) -> List[DispatcherEventNotification]: ...
+    ) -> list[DispatcherEventNotification]: ...
 
     @overload
     def bulk_dispatch(
@@ -2147,7 +2147,7 @@ class Dispatcher:
         dispatch_args_and_kwargs_per_event: bool = False,
         *args: Any,
         **kwargs: Any,
-    ) -> List[DispatcherEventNotification]: ...
+    ) -> list[DispatcherEventNotification]: ...
 
     def bulk_dispatch(
         self,
@@ -2931,4 +2931,4 @@ class Dispatcher:
         return True
 
 
-__all__: Final[List[str]] = [name for name in globals() if not name.startswith("_")]
+__all__: Final[list[str]] = [name for name in globals() if not name.startswith("_")]
